@@ -23,6 +23,11 @@ function formatHandLine(info) {
   );
 }
 
+function formatGameLine(gm) {
+  if (!gm) return '(game-manager missing)';
+  return `STATE:${gm.state}  dist:${gm.ride.distance().toFixed(1)}m  score:${gm.score.score()}`;
+}
+
 function register() {
   AFRAME.registerComponent('debug-panel', {
     init() {
@@ -55,8 +60,10 @@ function register() {
       if (t - this.lastUpdate < UPDATE_INTERVAL_MS) return;
       this.lastUpdate = t;
 
+      const gm = this.el.components['game-manager'];
       const lines = [
         `STARTHROWER ${VERSION}`,
+        formatGameLine(gm),
         formatHandLine(this.getInfo(this.handL)),
         formatHandLine(this.getInfo(this.handR)),
       ];

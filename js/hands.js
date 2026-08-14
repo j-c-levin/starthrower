@@ -33,6 +33,8 @@ function register() {
 
     tick() {
       if (!this.headEl || !this.headEl.object3D) return;
+      const gm = this.el.sceneEl.components['game-manager'];
+      if (gm && gm.state !== 'hangar') return;
       this.headEl.object3D.getWorldPosition(this.headPos);
       this.sampler.addSample(this.headPos.y);
     },
