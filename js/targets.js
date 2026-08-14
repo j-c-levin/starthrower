@@ -56,8 +56,11 @@ function register() {
     },
   });
 
+  const FLASH_THROTTLE_MS = 1000;
+
   AFRAME.registerComponent('core-flash', {
     init() {
+      this.lastFlashAt = -Infinity;
       this.onHit = this.onHit.bind(this);
       this.el.sceneEl.addEventListener('targethit', this.onHit);
     },
@@ -66,6 +69,9 @@ function register() {
     },
     onHit(evt) {
       if (evt.detail.type !== 'core') return;
+      const now = performance.now();
+      if (now - this.lastFlashAt < FLASH_THROTTLE_MS) return;
+      this.lastFlashAt = now;
       this.el.removeAttribute('animation__flash');
       this.el.setAttribute('animation__flash', {
         property: 'scale',
@@ -73,6 +79,7 @@ function register() {
         to: '1.3 1.3 1.3',
         dur: 150,
         dir: 'alternate',
+        loop: 2,
         easing: 'easeOutQuad',
       });
     },
