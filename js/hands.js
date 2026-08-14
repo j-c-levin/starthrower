@@ -66,6 +66,7 @@ function register() {
       this.handPos = new THREE.Vector3();
       this.tracker = null;
       this.lastThreshold = null;
+      this.firedCount = 0;
     },
 
     tick(t) {
@@ -106,10 +107,31 @@ function register() {
       });
 
       if (result) {
+        this.firedCount++;
         const origin = { x: result.origin.x, y: result.origin.y, z: result.origin.z };
         const through = { x: result.through.x, y: result.through.y, z: result.through.z };
         this.el.sceneEl.emit('fired', { origin, through, hand: this.data.hand });
       }
+    },
+
+    // Called ~4x/sec by debug-panel, never from the per-frame tick path —
+    // safe to allocate a small plain object here.
+    debugInfo() {
+      const htc = this.el.components['hand-tracking-controls'];
+      const wrist = htc && htc.wristObject3D;
+      return {
+        hand: this.data.hand,
+        hasTrackingControls: !!htc,
+        hasPoses: !!(htc && htc.hasPoses),
+        hasWrist: !!wrist,
+        wristVisible: !!(wrist && wrist.visible),
+        handPos: { x: this.handPos.x, y: this.handPos.y, z: this.handPos.z },
+        dist: this.headPos.distanceTo(this.handPos),
+        baseline: this.tracker ? this.tracker.baseline() : Infinity,
+        threshold: this.lastThreshold,
+        state: this.tracker ? this.tracker.state() : 'none',
+        firedCount: this.firedCount,
+      };
     },
   });
 }

@@ -21,6 +21,7 @@ export function createHandTracker({ threshold, cooldownMs = 250 }) {
 
   return {
     state: () => state,
+    baseline: () => baseline,
     update({ headPos, handPos, confident = true, t }) {
       const d = dist3(headPos, handPos);
       if (confident) {
