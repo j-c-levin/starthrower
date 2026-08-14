@@ -48,12 +48,8 @@ function register() {
       camEl.object3D.getWorldQuaternion(this.camQuat);
       this.camDir.set(0, 0, -1).applyQuaternion(this.camQuat);
       const origin = { x: this.headPos.x, y: this.headPos.y, z: this.headPos.z };
-      const through = {
-        x: origin.x + this.camDir.x,
-        y: origin.y + this.camDir.y,
-        z: origin.z + this.camDir.z,
-      };
-      this.el.emit('fired', { origin, through, hand: 'desktop' });
+      const dir = { x: this.camDir.x, y: this.camDir.y, z: this.camDir.z };
+      this.el.emit('fired', { origin, dir, hand: 'desktop' });
     },
   });
 
@@ -67,6 +63,7 @@ function register() {
       this.tracker = null;
       this.lastThreshold = null;
       this.firedCount = 0;
+      this.lastDir = null;
     },
 
     tick(t) {
@@ -109,8 +106,9 @@ function register() {
       if (result) {
         this.firedCount++;
         const origin = { x: result.origin.x, y: result.origin.y, z: result.origin.z };
-        const through = { x: result.through.x, y: result.through.y, z: result.through.z };
-        this.el.sceneEl.emit('fired', { origin, through, hand: this.data.hand });
+        const dir = { x: result.dir.x, y: result.dir.y, z: result.dir.z };
+        this.lastDir = dir;
+        this.el.sceneEl.emit('fired', { origin, dir, hand: this.data.hand });
       }
     },
 
@@ -131,6 +129,7 @@ function register() {
         threshold: this.lastThreshold,
         state: this.tracker ? this.tracker.state() : 'none',
         firedCount: this.firedCount,
+        lastDir: this.lastDir,
       };
     },
   });

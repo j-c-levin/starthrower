@@ -1,4 +1,4 @@
-import { aimDirection, snapToTarget, segmentHit } from './logic/aim.js';
+import { snapToTarget, segmentHit } from './logic/aim.js';
 
 const SPEED = 40;
 const MAX_RANGE = 60;
@@ -54,8 +54,7 @@ function register() {
     },
 
     onFired(evt) {
-      const { origin, through } = evt.detail;
-      const dir = aimDirection(origin, through);
+      const { origin, dir } = evt.detail;
       const manager = this.el.components['target-manager'];
       const active = manager ? manager.active() : [];
       const snap = snapToTarget(origin, dir, active, SNAP_CONE_DEG);

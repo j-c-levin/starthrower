@@ -9,10 +9,13 @@ function formatHandLine(info) {
     : 'none';
   const baseline = Number.isFinite(info.baseline) ? info.baseline.toFixed(2) : '-';
   const threshold = Number.isFinite(info.threshold) ? info.threshold.toFixed(2) : '-';
+  const dir = info.lastDir
+    ? `${info.lastDir.x.toFixed(2)},${info.lastDir.y.toFixed(2)},${info.lastDir.z.toFixed(2)}`
+    : '-';
   return (
     `${info.hand.toUpperCase()}  htc:${info.hasTrackingControls ? 'y' : 'n'}` +
     `  poses:${info.hasPoses ? 'y' : 'n'}  wrist:${wrist}  dist:${info.dist.toFixed(2)}m` +
-    `  base:${baseline}  thr:${threshold}  state:${info.state}  fired:${info.firedCount}`
+    `  base:${baseline}  thr:${threshold}  state:${info.state}  fired:${info.firedCount}  dir:${dir}`
   );
 }
 
