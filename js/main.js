@@ -5,4 +5,5 @@ import './projectiles.js';
 import './rail.js';
 import './game.js';
 import './hud.js';
+import './audio.js';
 import './debug-panel.js';
