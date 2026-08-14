@@ -1,10 +1,9 @@
-import { snapToTarget, segmentHit } from './logic/aim.js';
+import { segmentHit } from './logic/aim.js';
 
 const SPEED = 40;
 const MAX_RANGE = 60;
 const POOL_SIZE = 12;
 const NUDGE = 0.3;
-const SNAP_CONE_DEG = 7;
 
 function register() {
   AFRAME.registerComponent('projectile-pool', {
@@ -55,21 +54,18 @@ function register() {
 
     onFired(evt) {
       const { origin, dir } = evt.detail;
-      const manager = this.el.components['target-manager'];
-      const active = manager ? manager.active() : [];
-      const snap = snapToTarget(origin, dir, active, SNAP_CONE_DEG);
 
       const bolt = this.acquire();
       if (!bolt) return;
 
-      bolt.dir.x = snap.dir.x;
-      bolt.dir.y = snap.dir.y;
-      bolt.dir.z = snap.dir.z;
+      bolt.dir.x = dir.x;
+      bolt.dir.y = dir.y;
+      bolt.dir.z = dir.z;
       bolt.traveled = 0;
       bolt.cur.set(
-        origin.x + snap.dir.x * NUDGE,
-        origin.y + snap.dir.y * NUDGE,
-        origin.z + snap.dir.z * NUDGE
+        origin.x + dir.x * NUDGE,
+        origin.y + dir.y * NUDGE,
+        origin.z + dir.z * NUDGE
       );
       bolt.prev.copy(bolt.cur);
       bolt.el.object3D.position.copy(bolt.cur);

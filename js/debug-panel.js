@@ -12,10 +12,14 @@ function formatHandLine(info) {
   const dir = info.lastDir
     ? `${info.lastDir.x.toFixed(2)},${info.lastDir.y.toFixed(2)},${info.lastDir.z.toFixed(2)}`
     : '-';
+  const offsets = info.lastOffsets
+    ? `down:${info.lastOffsets.down.toFixed(2)} lat:${info.lastOffsets.lateral.toFixed(2)}`
+    : '-';
   return (
     `${info.hand.toUpperCase()}  htc:${info.hasTrackingControls ? 'y' : 'n'}` +
     `  poses:${info.hasPoses ? 'y' : 'n'}  wrist:${wrist}  dist:${info.dist.toFixed(2)}m` +
-    `  base:${baseline}  thr:${threshold}  state:${info.state}  fired:${info.firedCount}  dir:${dir}`
+    `  base:${baseline}  thr:${threshold}  state:${info.state}  fired:${info.firedCount}` +
+    `  dir:${dir}  shoulder:${offsets}`
   );
 }
 

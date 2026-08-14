@@ -1,5 +1,6 @@
 import { createHandTracker, throwThreshold } from './logic/firing.js';
 import { createHeightSampler } from './logic/heights.js';
+import { armRayDir, armOffsets } from './logic/aim.js';
 
 const THRESHOLD_RECREATE_DELTA = 0.02;
 
@@ -40,6 +41,10 @@ function register() {
       return throwThreshold(this.sampler.stable());
     },
 
+    height() {
+      return this.sampler.stable();
+    },
+
     onClick() {
       const camera = this.el.camera;
       const camEl = camera && camera.el;
@@ -60,10 +65,13 @@ function register() {
       this.headEl = this.el.sceneEl.querySelector('#head');
       this.headPos = new THREE.Vector3();
       this.handPos = new THREE.Vector3();
+      this.camQuat = new THREE.Quaternion();
+      this.camEuler = new THREE.Euler();
       this.tracker = null;
       this.lastThreshold = null;
       this.firedCount = 0;
       this.lastDir = null;
+      this.lastOffsets = null;
     },
 
     tick(t) {
@@ -106,8 +114,24 @@ function register() {
       if (result) {
         this.firedCount++;
         const origin = { x: result.origin.x, y: result.origin.y, z: result.origin.z };
-        const dir = { x: result.dir.x, y: result.dir.y, z: result.dir.z };
+
+        // Arm-ray aim, computed fresh at the fire instant only — no
+        // per-tick allocation, since this branch only runs on a fire.
+        this.headEl.object3D.getWorldQuaternion(this.camQuat);
+        this.camEuler.setFromQuaternion(this.camQuat, 'YXZ');
+        const yaw = this.camEuler.y;
+        const height = calib.height();
+
+        const dir = armRayDir(
+          { x: this.headPos.x, y: this.headPos.y, z: this.headPos.z },
+          yaw,
+          origin,
+          this.data.hand,
+          height
+        );
+
         this.lastDir = dir;
+        this.lastOffsets = armOffsets(height);
         this.el.sceneEl.emit('fired', { origin, dir, hand: this.data.hand });
       }
     },
@@ -130,6 +154,7 @@ function register() {
         state: this.tracker ? this.tracker.state() : 'none',
         firedCount: this.firedCount,
         lastDir: this.lastDir,
+        lastOffsets: this.lastOffsets,
       };
     },
   });
