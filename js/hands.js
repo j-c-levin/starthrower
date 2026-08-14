@@ -79,8 +79,24 @@ function register() {
       }
 
       this.headEl.object3D.getWorldPosition(this.headPos);
-      this.el.object3D.getWorldPosition(this.handPos);
-      const confident = isAncestorVisible(this.el.object3D);
+
+      // hand-tracking-controls zeroes el.object3D.position every tick and
+      // instead tracks the wrist pose on a separate Object3D it parents
+      // directly to the scene (wristObject3D) — read that when present.
+      const htc = this.el.components['hand-tracking-controls'];
+      let confident;
+      if (htc) {
+        const wrist = htc.wristObject3D;
+        if (wrist) {
+          wrist.getWorldPosition(this.handPos);
+          confident = !!(htc.hasPoses && wrist.visible);
+        } else {
+          confident = false;
+        }
+      } else {
+        this.el.object3D.getWorldPosition(this.handPos);
+        confident = isAncestorVisible(this.el.object3D);
+      }
 
       const result = this.tracker.update({
         headPos: this.headPos,
