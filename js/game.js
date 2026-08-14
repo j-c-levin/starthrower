@@ -5,6 +5,28 @@ import { parseParams } from './logic/params.js';
 
 const TALLY_AUTO_MS = 10000; // seam: Task 18's tally UI emits `tallydone` itself and replaces this fallback
 
+function createMemoryStorage() {
+  const map = new Map();
+  return {
+    getItem: (k) => (map.has(k) ? map.get(k) : null),
+    setItem: (k, v) => { map.set(k, String(v)); },
+  };
+}
+
+// window.localStorage can throw on access (sandboxed iframe, private-browsing
+// / enterprise policy), which would otherwise crash finishRide() right as a
+// ride ends — probe once and fall back to an in-memory stub.
+function safeStorage() {
+  try {
+    const probeKey = '__starthrower_probe__';
+    window.localStorage.setItem(probeKey, '1');
+    window.localStorage.removeItem(probeKey);
+    return window.localStorage;
+  } catch {
+    return createMemoryStorage();
+  }
+}
+
 function register() {
   AFRAME.registerComponent('game-manager', {
     init() {
@@ -15,6 +37,7 @@ function register() {
       this.rigEl = this.el.querySelector('#rig');
       this.tallyElapsedMs = 0;
       this._debugPos = new THREE.Vector3();
+      this.storage = safeStorage();
 
       this.onTargetHit = this.onTargetHit.bind(this);
       this.onProjectileExpired = this.onProjectileExpired.bind(this);
@@ -92,8 +115,8 @@ function register() {
 
     finishRide() {
       const score = this.score.score();
-      const prevBest = loadBest(window.localStorage);
-      const newBest = saveBest(window.localStorage, score);
+      const prevBest = loadBest(this.storage);
+      const newBest = saveBest(this.storage, score);
       const best = newBest ? score : prevBest;
       this.state = 'tally';
       this.tallyElapsedMs = 0;
