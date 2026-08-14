@@ -1,3 +1,5 @@
+import { createSpline } from './spline.js';
+
 export const SPEED = 6; // m/s
 
 const Y = 2;
@@ -64,6 +66,29 @@ export const WAYPOINTS = [
   ...tally(bossEntryX, -1095),
 ];
 
+const spline = createSpline(WAYPOINTS);
+const railSpawn = (at, target, dx, dy, extra) => {
+  const p = spline.pointAt(at);
+  return { at, type: 'spawn', target, pos: [p.x + dx, p.y + dy, p.z], ...extra };
+};
+
+// placeholder densities — Tasks 15/16 author the full beat content
+const fieldSpawns = [
+  [200, 'asteroid', -4, 0.2], [222, 'asteroid', 3.5, 1.2], [244, 'asteroid', -2.5, 0.6],
+  [262, 'drone', 2, 0.8],
+  [280, 'asteroid', 5, -0.4], [300, 'asteroid', -5, 0.9],
+  [322, 'drone', -2.5, 1.1],
+  [340, 'asteroid', 2.5, 0.3], [362, 'asteroid', -3, 1.4], [384, 'asteroid', 4.5, -0.2],
+  [404, 'drone', 2.5, 0.6],
+  [424, 'asteroid', -4.5, 0.8], [444, 'asteroid', 3, 1.6], [466, 'drone', -2, 0.9],
+  [486, 'asteroid', -2, 0.4], [508, 'asteroid', 4, 1.0],
+].map(([at, target, dx, dy]) => railSpawn(at, target, dx, dy));
+
+const popupSpawns = [
+  [560, -2.5, 0.5, 4, 0.55], [608, 3, 0.1, 3.5, 0.5], [656, -3, 0.9, 4.5, 0.5],
+  [704, 2.5, 0.3, 4, 0.6], [752, -2, 0.7, 3.5, 0.55], [815, 2, 1.1, 4.2, 0.5],
+].map(([at, dx, dy, period, duty]) => railSpawn(at, 'popup', dx, dy, { period, duty }));
+
 const crateSpawns = [
   { at: 20, x: -3, y: 1.6, z: -20 },
   { at: 45, x: 3, y: 2.4, z: -45 },
@@ -77,7 +102,9 @@ export const EVENTS = [
   { at: 0, type: 'beat', name: 'departure' },
   ...crateSpawns,
   { at: 180, type: 'beat', name: 'asteroids' },
+  ...fieldSpawns,
   { at: 540, type: 'beat', name: 'derelict' },
+  ...popupSpawns,
   { at: 900, type: 'beat', name: 'boss' },
   { at: 1170, type: 'beat', name: 'tally' },
   { at: 1250, type: 'end' },
