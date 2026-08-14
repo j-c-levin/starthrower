@@ -1,6 +1,7 @@
 import { createHandTracker, throwThreshold } from './logic/firing.js';
 import { createHeightSampler } from './logic/heights.js';
 import { armRayDir, armOffsets } from './logic/aim.js';
+import { createTuning } from './logic/tuning.js';
 
 const THRESHOLD_RECREATE_DELTA = 0.02;
 
@@ -14,6 +15,23 @@ function isAncestorVisible(object3D) {
 }
 
 function register() {
+  // Shared across calibration + hand-thrower below: one parse of the URL
+  // per session, read here (init-safe: register() only runs under AFRAME).
+  const tuning = createTuning(window.location.search);
+  const thrOpts = {
+    thrFactor: tuning.get('thrFactor'),
+    thrMin: tuning.get('thrMin'),
+    thrMax: tuning.get('thrMax'),
+  };
+  const shoulderOpts = {
+    downFrac: tuning.get('shoulderDownFrac'),
+    downMin: tuning.get('shoulderDownMin'),
+    downMax: tuning.get('shoulderDownMax'),
+    latFrac: tuning.get('shoulderLatFrac'),
+    latMin: tuning.get('shoulderLatMin'),
+    latMax: tuning.get('shoulderLatMax'),
+  };
+
   AFRAME.registerComponent('calibration', {
     init() {
       this.sampler = createHeightSampler();
@@ -40,7 +58,7 @@ function register() {
     },
 
     threshold() {
-      return throwThreshold(this.sampler.stable());
+      return throwThreshold(this.sampler.stable(), thrOpts);
     },
 
     height() {
@@ -82,7 +100,11 @@ function register() {
 
       const threshold = calib.threshold();
       if (this.tracker === null || Math.abs(threshold - this.lastThreshold) > THRESHOLD_RECREATE_DELTA) {
-        this.tracker = createHandTracker({ threshold });
+        this.tracker = createHandTracker({
+          threshold,
+          cooldownMs: tuning.get('cooldownMs'),
+          rearmFrac: tuning.get('rearmFrac'),
+        });
         this.lastThreshold = threshold;
       }
 
@@ -129,11 +151,12 @@ function register() {
           yaw,
           origin,
           this.data.hand,
-          height
+          height,
+          shoulderOpts
         );
 
         this.lastDir = dir;
-        this.lastOffsets = armOffsets(height);
+        this.lastOffsets = armOffsets(height, shoulderOpts);
         this.el.sceneEl.emit('fired', { origin, dir, hand: this.data.hand });
       }
     },

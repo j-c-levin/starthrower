@@ -1,13 +1,15 @@
 import { segmentHit } from './logic/aim.js';
+import { createTuning } from './logic/tuning.js';
 
-const SPEED = 40;
-const MAX_RANGE = 60;
 const POOL_SIZE = 12;
 const NUDGE = 0.3;
 
 function register() {
   AFRAME.registerComponent('projectile-pool', {
     init() {
+      const tuning = createTuning(window.location.search);
+      this.speed = tuning.get('boltSpeed');
+      this.maxRange = tuning.get('boltRange');
       this.pool = [];
       this.nextIndex = 0;
 
@@ -75,7 +77,7 @@ function register() {
 
     tick(t, dt) {
       if (!dt) return;
-      const step = (SPEED * dt) / 1000;
+      const step = (this.speed * dt) / 1000;
       const manager = this.el.components['target-manager'];
       const active = manager ? manager.active() : [];
 
@@ -101,7 +103,7 @@ function register() {
           continue;
         }
 
-        if (bolt.traveled >= MAX_RANGE) {
+        if (bolt.traveled >= this.maxRange) {
           this.el.emit('projectileexpired', { point: { x: bolt.cur.x, y: bolt.cur.y, z: bolt.cur.z } });
           this.release(bolt);
         }

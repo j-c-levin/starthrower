@@ -1,11 +1,11 @@
-export function throwThreshold(heightMetres) {
+export function throwThreshold(heightMetres, { thrFactor = 0.18, thrMin = 0.15, thrMax = 0.40 } = {}) {
   if (!heightMetres) return 0.25;
-  return Math.min(0.4, Math.max(0.15, 0.18 * heightMetres));
+  return Math.min(thrMax, Math.max(thrMin, thrFactor * heightMetres));
 }
 
 const dist3 = (a, b) => Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
 
-export function createHandTracker({ threshold, cooldownMs = 250 }) {
+export function createHandTracker({ threshold, cooldownMs = 250, rearmFrac = 0.5 }) {
   let state = 'armed';
   let baseline = Infinity;
   let fireDist = 0;
@@ -30,7 +30,7 @@ export function createHandTracker({ threshold, cooldownMs = 250 }) {
         if (state === 'armed') baseline = Math.min(baseline, d);
       }
       if (state === 'recovering') {
-        if (d <= fireDist - threshold / 2) {
+        if (d <= fireDist - threshold * rearmFrac) {
           state = 'armed';
           baseline = d;
         }

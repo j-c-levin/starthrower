@@ -19,10 +19,13 @@ export function aimDirection(origin, through) {
   return norm(sub(through, origin));
 }
 
-export function armOffsets(heightMetres) {
+export function armOffsets(heightMetres, {
+  downFrac = 0.13, downMin = 0.15, downMax = 0.28,
+  latFrac = 0.09, latMin = 0.08, latMax = 0.18,
+} = {}) {
   return {
-    down: heightMetres ? Math.min(0.28, Math.max(0.15, 0.13 * heightMetres)) : 0.22,
-    lateral: heightMetres ? Math.min(0.18, Math.max(0.08, 0.09 * heightMetres)) : 0.15,
+    down: heightMetres ? Math.min(downMax, Math.max(downMin, downFrac * heightMetres)) : 0.22,
+    lateral: heightMetres ? Math.min(latMax, Math.max(latMin, latFrac * heightMetres)) : 0.15,
   };
 }
 
@@ -30,8 +33,8 @@ export function armOffsets(heightMetres) {
 // fire instant (no motion differentiation). The virtual shoulder sits
 // below and to the side of the head, offset rotated into the head's
 // yaw frame so it stays "attached" to the body as the player turns.
-export function armRayDir(headPos, headYawRad, handPos, side, heightMetres) {
-  const { down, lateral } = armOffsets(heightMetres);
+export function armRayDir(headPos, headYawRad, handPos, side, heightMetres, offsetOpts) {
+  const { down, lateral } = armOffsets(heightMetres, offsetOpts);
   const sign = side === 'left' ? -1 : 1;
   const lateralOffset = rotateY({ x: sign * lateral, y: 0, z: 0 }, headYawRad);
   const shoulder = {

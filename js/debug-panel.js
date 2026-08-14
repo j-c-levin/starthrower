@@ -1,6 +1,12 @@
 import { VERSION } from './version.js';
+import { createTuning } from './logic/tuning.js';
 
 const UPDATE_INTERVAL_MS = 250;
+
+function formatTunedLine(overrides) {
+  if (!overrides.length) return null;
+  return `TUNED: ${overrides.map(({ key, value }) => `${key}=${value}`).join(' ')}`;
+}
 
 function formatHandLine(info) {
   if (!info) return '(hand-thrower missing)';
@@ -34,6 +40,8 @@ function register() {
       this.lastUpdate = -Infinity;
       this.handL = this.el.querySelector('#handL');
       this.handR = this.el.querySelector('#handR');
+      // Reads location.search once — URL params don't change mid-session.
+      this.tunedLine = formatTunedLine(createTuning(window.location.search).overrides());
 
       this.panelEl = document.createElement('a-entity');
       this.panelEl.setAttribute('position', '0 2.4 -5.9');
@@ -67,6 +75,7 @@ function register() {
         formatHandLine(this.getInfo(this.handL)),
         formatHandLine(this.getInfo(this.handR)),
       ];
+      if (this.tunedLine) lines.push(this.tunedLine);
       this.panelEl.setAttribute('text', 'value', lines.join('\n'));
     },
   });

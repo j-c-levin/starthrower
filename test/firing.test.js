@@ -64,6 +64,26 @@ test('low-confidence crossing fires at last good smoothed pose', () => {
   assert.ok(fire.origin.z > -0.5, 'aim pose comes from confident frames, not the jitter frame');
 });
 
+test('custom rearmFrac changes how far back the hand must pull to re-arm', () => {
+  function armedAtStep(rearmFrac) {
+    const tr = createHandTracker({ threshold: 0.3, cooldownMs: 0, rearmFrac });
+    let t = 0, fires = 0, armedStep = null;
+    const feed = (z) => { if (tr.update({ headPos: HEAD, handPos: hand(z), t: t += 20 })) fires++; };
+    for (let z = -0.2; z > -0.75; z -= 0.05) feed(z);
+    assert.equal(fires, 1);
+    let step = 0;
+    for (let z = -0.75; z < -0.2; z += 0.02) {
+      feed(z);
+      step++;
+      if (tr.state() === 'armed' && armedStep === null) armedStep = step;
+    }
+    return armedStep;
+  }
+  const shallow = armedAtStep(0.2);
+  const deep = armedAtStep(0.5);
+  assert.ok(shallow < deep, 'a smaller rearmFrac re-arms after less pull-back than the default');
+});
+
 test('low-confidence frames do not lower the baseline', () => {
   const tr = makeTracker();
   let t = 0;
