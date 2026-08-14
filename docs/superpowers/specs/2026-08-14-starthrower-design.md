@@ -68,11 +68,17 @@ kid-flail all cross it).
   position/direction use a smoothed pose over the last ~3 good frames.
   Low-confidence tracking frames are ignored. Tracking loss mid-throw fires
   at the last good pose rather than swallowing the input.
-- **Aim:** at threshold crossing, the projectile flies along the ray **from
-  the head through the smoothed hand position**, fixed speed, max range.
-- **Aim assist:** if the ray passes within a generous cone (5–8°) of a live
-  target, the projectile direction **snaps at spawn** to that target. No
-  mid-flight curving. Invisible in feel; testable as pure math.
+- **Aim (settled on device, 2026-08-14):** **arm ray** — at the fire
+  instant a virtual shoulder is estimated per hand (below and beside the
+  head, offsets scaled to sampled height and rotated with head yaw), and
+  the projectile flies from the hand along the shoulder→hand line, fixed
+  speed, max range. Pure geometry at the fire instant; nothing is
+  differentiated, so hand-tracking jitter during fast swings cannot
+  scatter aim. (Two earlier models failed the headset test: head-through-
+  hand rays slant downward because hands sit below the head; motion-path
+  aim scatters because Quest 2 tracking degrades during fast throws.)
+- **No aim assist.** Snap-to-target was tried and removed on device
+  feedback — bolts fly exactly where the arm points.
 - **Re-arm:** after firing, that hand's head-to-hand distance must decrease
   by at least half the threshold from its firing value before it can fire
   again, plus a ~250ms cooldown. Re-arming resets the rolling baseline.
