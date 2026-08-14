@@ -1,1 +1,4 @@
-// Glue module imports are added here as they are created.
+import './palette.js';
+import './hands.js';
+import './targets.js';
+import './projectiles.js';

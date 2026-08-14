@@ -8,12 +8,21 @@
   <script type="module" src="js/main.js"></script>
 </head>
 <body>
-  <a-scene background="color: #0b1030" renderer="colorManagement: true">
+  <a-scene background="color: #0b1030" renderer="colorManagement: true"
+           target-manager projectile-pool calibration>
     <a-entity id="rig" position="0 0 0">
       <a-entity id="head" camera position="0 1.6 0"></a-entity>
-      <a-entity id="handL" hand-tracking-controls="hand: left"></a-entity>
-      <a-entity id="handR" hand-tracking-controls="hand: right"></a-entity>
+      <a-entity id="handL" hand-tracking-controls="hand: left" hand-thrower="hand: left"></a-entity>
+      <a-entity id="handR" hand-tracking-controls="hand: right" hand-thrower="hand: right"></a-entity>
     </a-entity>
+
+    <a-entity id="core" hit-target="type: core; radius: 0.6" core-flash
+              geometry="primitive: sphere; radius: 0.5"
+              material="shader: flat; color: #ffc857"
+              position="0 1.6 -6"></a-entity>
+
+    <a-box material="shader: flat; color: #1a2050; side: back"
+           position="0 6 -10" scale="12 12 20"></a-box>
   </a-scene>
 </body>
 </html>
