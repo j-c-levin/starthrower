@@ -124,14 +124,14 @@ function register() {
     },
 
     onTargetHit(evt) {
-      const { type, point } = evt.detail;
+      const { type, point, id } = evt.detail;
       if (type === 'core') {
         if (this.state === 'hangar') this.startRide();
         return;
       }
       if (this.state !== 'riding') return;
       const points = this.score.hit(type);
-      this.el.emit('scored', { points, score: this.score.score(), multiplier: this.score.multiplier(), point });
+      this.el.emit('scored', { points, score: this.score.score(), multiplier: this.score.multiplier(), point, type, id });
     },
 
     onProjectileExpired(evt) {
