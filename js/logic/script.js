@@ -84,3 +84,16 @@ export const EVENTS = [
 ];
 
 export const RIDE = { speed: SPEED, waypoints: WAYPOINTS, events: EVENTS };
+
+function deepFreeze(obj) {
+  Object.freeze(obj);
+  for (const value of Object.values(obj)) {
+    if (value && typeof value === 'object') deepFreeze(value);
+  }
+  return obj;
+}
+
+Object.freeze(WAYPOINTS);
+WAYPOINTS.forEach((w) => Object.freeze(w));
+deepFreeze(EVENTS);
+deepFreeze(RIDE);
