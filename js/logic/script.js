@@ -25,13 +25,18 @@ function asteroids() {
   });
 }
 
-// sweeps out to one side of the derelict, then drifts back in line with the boss circle's entry
+// sweeps out along the derelict's forward hull, dives through the break between
+// its two sections (~1.8°/s pitch vs the 10°/s cap), then drifts back in line
+// with the boss circle's entry
 function derelict(exitX, z1) {
   const z0 = -540;
   return range(z0, z1).map((z) => {
     const f = (z - z0) / (z1 - z0);
     const bulge = Math.sin(Math.min(1, f / 0.7) * Math.PI);
-    return { x: 30 * bulge + exitX * f, y: Y, z };
+    const dive = f > 0.34 && f < 0.62
+      ? 0.5 * (1 - Math.cos(((f - 0.34) / 0.28) * Math.PI * 2))
+      : 0;
+    return { x: 30 * bulge + exitX * f, y: Y - 5.5 * dive, z };
   });
 }
 
@@ -96,11 +101,32 @@ const fieldSpawns = [
   [503, 'asteroid', 3, 1.7], [512, 'asteroid', -3.5, 1.0],
 ].map(([at, target, dx, dy]) => railSpawn(at, target, dx, dy));
 
-// placeholder densities — Task 16 authors the derelict beat
-const popupSpawns = [
-  [560, -2.5, 0.5, 4, 0.55], [608, 3, 0.1, 3.5, 0.5], [656, -3, 0.9, 4.5, 0.5],
-  [704, 2.5, 0.3, 4, 0.6], [752, -2, 0.7, 3.5, 0.55], [815, 2, 1.1, 4.2, 0.5],
-].map(([at, dx, dy, period, duty]) => railSpawn(at, 'popup', dx, dy, { period, duty }));
+// derelict beat: 12 popups in the wreck's windows and hull tears + 6 drones
+// weaving in the break; periods staggered so ~half the visible popups are up
+// at any moment (ambient.js builds a window socket at every popup pos)
+// popup clocks start at deploy (at-40m, so 40/6 s before the pass); these periods
+// were solved so every popup is up at its own pass and >=1 is up at any instant
+// of the beat (test simulates the same model)
+const derelictSpawns = [
+  [570, 'popup', -6.5, 1.5, { period: 4.5, duty: 0.6 }],
+  [598, 'popup', 5.5, 2.5, { period: 4.5, duty: 0.6 }],
+  [615, 'popup', -5.9, 2, { period: 3.2, duty: 0.6 }],
+  [645, 'popup', -8.9, 4, { period: 3.2, duty: 0.6 }],
+  [660, 'drone', -3.5, 2.5],
+  [675, 'popup', -10.9, 1, { period: 3.2, duty: 0.6 }],
+  [705, 'popup', -11.7, 5, { period: 3.2, duty: 0.6 }],
+  [735, 'popup', -10.4, 2.5, { period: 3.2, duty: 0.6 }],
+  [750, 'drone', -3, 2],
+  [765, 'popup', -7, 3, { period: 3.3, duty: 0.6 }],
+  [782, 'drone', 2.5, 1],
+  [790, 'popup', 6.5, 2, { period: 4.4, duty: 0.6 }],
+  [808, 'drone', -2, 3],
+  [825, 'popup', 6, 3, { period: 4.8, duty: 0.6 }],
+  [835, 'drone', 3, 1.5],
+  [850, 'popup', -5.5, 1.5, { period: 3.0, duty: 0.6 }],
+  [862, 'drone', -2.5, 1],
+  [875, 'popup', 5, 2.5, { period: 3.3, duty: 0.6 }],
+].map(([at, target, dx, dy, extra]) => railSpawn(at, target, dx, dy, extra));
 
 // departure corridor: 10 generous near-rail crates between the launch gates
 const crateSpawns = [
@@ -114,7 +140,7 @@ export const EVENTS = [
   { at: 180, type: 'beat', name: 'asteroids' },
   ...fieldSpawns,
   { at: 540, type: 'beat', name: 'derelict' },
-  ...popupSpawns,
+  ...derelictSpawns,
   { at: 900, type: 'beat', name: 'boss' },
   { at: 1170, type: 'beat', name: 'tally' },
   { at: 1250, type: 'end' },

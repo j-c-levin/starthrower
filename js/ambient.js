@@ -1,5 +1,7 @@
 import { PALETTE } from './palette.js';
 import { makeRng, skyColorAt, skyPalette } from './sky.js';
+import { WAYPOINTS, EVENTS } from './logic/script.js';
+import { createSpline } from './logic/spline.js';
 
 const BEATS = ['departure', 'asteroids', 'derelict', 'boss', 'tally'];
 const NEBULA_DIST = 2350;
@@ -233,6 +235,336 @@ function register() {
     return merged(parts);
   }
 
+  // ---- derelict beat (540-900m): a colossal broken ship in two sections.
+  // Forward hull looms to port of the outward-bulging rail; the aft engine
+  // section lies to starboard past the break; the rail dives through the gap.
+  // Rail-anchored parts (window sockets, rib rings) are computed from the
+  // shipped spline + spawn events so they stay aligned with script.js.
+  const rail = createSpline(WAYPOINTS);
+  const derelictPopups = EVENTS.filter(
+    (e) => e.type === 'spawn' && e.target === 'popup' && e.at >= 540 && e.at < 900
+  );
+  const FWD = { x: -14, y: 4, z: -655, ry: -0.05 };
+  const AFT = { x: 38, y: 2, z: -884, ry: 0.18, rz: -0.3 };
+  // popups these indices are windows in solid hull; the rest ride torn debris rafts
+  const HULL_POPUPS = new Set([2, 3, 4, 5, 6, 7, 9]);
+  const RING_N = 14;
+  const RINGS = [
+    { at: 745, R: 11.5, lift: 2.5, drop: [8, 9, 10], tint: 'amber' },
+    { at: 772, R: 10.5, lift: 2, drop: [3, 4], tint: 'magenta' },
+    { at: 802, R: 12.5, lift: 3, drop: [11, 12, 13], tint: 'amber' },
+  ];
+
+  const mul = (a, b) => new THREE.Matrix4().multiplyMatrices(a, b);
+  const mFwd = () => xf(FWD.x, FWD.y, FWD.z, 0, FWD.ry, 0);
+  const mAft = () => xf(AFT.x, AFT.y, AFT.z, 0, AFT.ry, AFT.rz);
+
+  function ringSegs(ring) {
+    const p = rail.pointAt(ring.at);
+    const segs = [];
+    for (let i = 0; i < RING_N; i++) {
+      const a = -Math.PI / 2 + (i / RING_N) * Math.PI * 2;
+      segs.push({
+        i,
+        kept: !ring.drop.includes(i),
+        edge: !ring.drop.includes(i) &&
+          (ring.drop.includes((i + 1) % RING_N) || ring.drop.includes((i + RING_N - 1) % RING_N)),
+        x: p.x + ring.R * Math.cos(a),
+        y: p.y + ring.lift + ring.R * Math.sin(a),
+        z: p.z,
+        a,
+      });
+    }
+    return segs;
+  }
+
+  // perimeter of a w x h rectangle centered on the origin -> position + edge angle
+  function rimPoint(w, h, t) {
+    const per = 2 * (w + h);
+    let d = ((t % 1) + 1) % 1 * per;
+    if (d < w) return { x: -w / 2 + d, y: -h / 2, a: 0 };
+    d -= w;
+    if (d < h) return { x: w / 2, y: -h / 2 + d, a: Math.PI / 2 };
+    d -= h;
+    if (d < w) return { x: w / 2 - d, y: h / 2, a: 0 };
+    d -= w;
+    return { x: -w / 2, y: h / 2 - d, a: Math.PI / 2 };
+  }
+
+  function ribArc(parts, col, m, cx, cy, lz, R, a0, a1, n, th) {
+    const seg = (Math.abs(a1 - a0) * R) / n * 1.18;
+    for (let i = 0; i < n; i++) {
+      const a = a0 + ((i + 0.5) / n) * (a1 - a0);
+      const local = xf(cx + R * Math.cos(a), cy + R * Math.sin(a), lz, 0, 0, a + Math.PI / 2);
+      parts.push([box(th, seg, th), col, m ? mul(m, local) : local]);
+    }
+  }
+
+  // world x of the forward hull's starboard flank at a given world z
+  const fwdFlankX = (z) => FWD.x + 21 + (z - FWD.z) * FWD.ry;
+
+  function scatterDebris(parts, rng, cols, z0, z1, count, distOfZ) {
+    for (let i = 0; i < count; i++) {
+      const z = z0 + rng() * (z1 - z0);
+      const side = rng() < 0.5 ? -1 : 1;
+      const p = rail.pointAt(distOfZ(z));
+      const x = p.x + side * (6 + rng() * 11);
+      const y = p.y + (rng() - 0.42) * 14;
+      const col = cols[i % cols.length];
+      if (rng() < 0.62) {
+        parts.push([box(2 + rng() * 5, 1.5 + rng() * 3.5, 0.6 + rng() * 0.8), col,
+          xf(x, y, z, rng() * 3, rng() * 3, rng() * 3)]);
+      } else {
+        const s = 1 + rng() * 2.6;
+        parts.push([new THREE.IcosahedronGeometry(1, 0), col,
+          xf(x, y, z, rng() * 3, rng() * 3, rng() * 3, s, s * 0.8, s * 1.1)]);
+      }
+    }
+  }
+
+  function buildWreckPlates() {
+    const rng = makeRng(6021);
+    const cDark = mixc(PALETTE.space, PALETTE.amber, 0.05).multiplyScalar(0.72);
+    const cMid = mixc(PALETTE.space, PALETTE.amber, 0.09).multiplyScalar(1.05);
+    const cCool = mixc(PALETTE.space, PALETTE.violet, 0.24).multiplyScalar(0.8);
+    const cRust = mixc(PALETTE.space, PALETTE.amber, 0.18).multiplyScalar(0.9);
+    const parts = [];
+    const mF = mFwd();
+    const mA = mAft();
+    const fp = (geo, col, local) => parts.push([geo, col, mul(mF, local)]);
+    const ap = (geo, col, local) => parts.push([geo, col, mul(mA, local)]);
+
+    // forward hull: keel slab + upper works + belly, ~170m of ship
+    fp(box(42, 24, 168), cDark, xf(0, 0, 0));
+    fp(box(34, 10, 146), cMid, xf(-2, 15, -8));
+    fp(box(36, 9, 150), cMid, xf(1, -14, 6));
+    fp(box(16, 12, 44), cMid, xf(-4, 24, 18));
+    fp(box(9, 9, 24), cCool, xf(-7, 32, 8));
+    fp(box(5, 26, 5), cDark, xf(-1, 40, 38, 0, 0, 0.1));
+    fp(box(7, 3, 7), cMid, xf(-1.5, 53, 37.5, 0, 0, 0.1));
+    // prow wedge pointing back up the rail (dresses the 540-560m approach)
+    fp(box(16, 15, 30), cMid, xf(-6, 1, 92, 0, 0.3, 0));
+    fp(box(16, 15, 30), cDark, xf(6, 1, 92, 0, -0.3, 0));
+    fp(box(8, 8, 18), cDark, xf(0, 2, 108));
+    fp(box(6, 5, 10), cMid, xf(-1, 0, 116, 0, 0.12, 0));
+    fp(box(10, 3.5, 14), cRust, xf(-6, 8.5, 96, 0, 0.3, 0));
+    fp(box(9, 2.5, 10), cCool, xf(-8, -5, 90, 0, 0.3, 0));
+    // dorsal fin blade + deck clutter so the bow-on silhouette reads "ship"
+    fp(box(2.2, 21, 36), cMid, xf(2, 13, 62));
+    fp(box(2.8, 7, 9), cDark, xf(2, 24, 52));
+    fp(box(5, 3, 6), cCool, xf(-8, 12, 68));
+    fp(box(3.5, 2.5, 4.5), cRust, xf(7, 11.7, 74, 0, 0.4, 0));
+    // torn notch at the bow's port corner
+    fp(box(5, 6, 8), cDark, xf(-17, 3, 88, 0.3, 0.5, 0.4));
+    fp(box(4, 5, 6), cMid, xf(-19, -2, 94, 0.6, 0.2, 0.7));
+    // starboard flank pilaster plates the window rows run between
+    for (let lz = -76; lz <= 64; lz += 14) {
+      fp(box(1.2, 10 + (lz % 3), 3.6), lz % 28 ? cMid : cRust, xf(21.2, 2 + (lz % 5) * 0.6, lz));
+    }
+    // torn stern rim: jagged shredded plating
+    for (let i = 0; i < 16; i++) {
+      const r = rimPoint(38, 22, i / 16 + 0.02);
+      fp(box(2 + rng() * 3, 3 + rng() * 3.5, 1 + rng() * 1.4), i % 3 ? cDark : cRust,
+        xf(r.x + (rng() - 0.5) * 2, r.y + 1 + (rng() - 0.5) * 2, -84 + (rng() - 0.5) * 4,
+          rng() * 0.8, rng() * 0.8, r.a + (rng() - 0.5) * 1.1));
+    }
+
+    // aft engine section, listing hard
+    ap(box(40, 28, 116), cDark, xf(0, 0, 0));
+    ap(box(30, 10, 92), cMid, xf(0, 17, -6));
+    ap(box(3.5, 24, 56), cCool, xf(2, -22, -12));
+    ap(box(34, 22, 20), cMid, xf(0, 0, 50));
+    for (const [ex, ey] of [[-11, 4], [11, 4], [0, -6]]) {
+      ap(new THREE.TorusGeometry(6.5, 1.9, 6, 18), cDark, xf(ex, ey, 60));
+      ap(box(9, 9, 2.4), cMid, xf(ex, ey, 59));
+    }
+    // port flank plating the exit stretch slides along
+    for (let lz = -46; lz <= 32; lz += 13) {
+      ap(box(1.1, 7 + (lz % 3), 3.4), lz % 26 ? cMid : cCool, xf(-20.6, 1 + (lz % 4), lz));
+    }
+    ap(box(1.4, 14, 30), cDark, xf(-20.9, 6, 14));
+    // torn bow rim on the lower half (the break faces the oncoming rail)
+    for (let i = 0; i < 12; i++) {
+      const r = rimPoint(36, 24, 0.5 + i / 24 + 0.02);
+      ap(box(2 + rng() * 3, 3 + rng() * 3, 1 + rng() * 1.2), i % 3 ? cDark : cMid,
+        xf(r.x + (rng() - 0.5) * 2, r.y + (rng() - 0.5) * 2, 58 + (rng() - 0.5) * 4,
+          rng() * 0.8, rng() * 0.8, r.a + (rng() - 0.5) * 1.1));
+    }
+
+    // window sockets behind every popup spawn; free-floaters get a wreckage raft
+    derelictPopups.forEach((e, i) => {
+      const [px, py, pz] = e.pos;
+      parts.push([box(3.4, 3.4, 2.8), cDark, xf(px, py, pz - 1.7)]);
+      parts.push([box(4.4, 0.9, 2.2), cMid, xf(px, py - 2, pz - 1.9, 0, 0, 0.06)]);
+      if (!HULL_POPUPS.has(i)) {
+        parts.push([box(7.5, 5.5, 1.2), cDark, xf(px + 0.8, py - 0.6, pz - 3.2, 0.12, 0.14, 0.2)]);
+        parts.push([box(4, 3, 0.9), cMid, xf(px - 2.6, py + 1.9, pz - 2.7, -0.2, 0, -0.5)]);
+        parts.push([box(1, 1, 2.4), cRust, xf(px + 2.8, py - 2.2, pz - 2.4, 0, 0, 0.6)]);
+      }
+    });
+
+    // debris: approach trail, break-gap wreckage, exit stragglers
+    const cols = [cMid, cCool, cRust, cDark];
+    scatterDebris(parts, rng, cols, -614, -544, 11, (z) => -z + 10.5);
+    scatterDebris(parts, rng, cols, -808, -746, 10, (z) => -z + 12);
+    scatterDebris(parts, rng, cols, -872, -828, 7, (z) => -z + 14);
+
+    return merged(parts);
+  }
+
+  function buildWreckRibs() {
+    const rng = makeRng(7433);
+    const cRib = mixc(PALETTE.space, PALETTE.magenta, 0.14).multiplyScalar(0.55);
+    const cRibDark = mixc(PALETTE.space, PALETTE.magenta, 0.1).multiplyScalar(0.35);
+    const parts = [];
+    const mF = mFwd();
+    const mA = mAft();
+
+    // free-floating broken rib rings the rail threads in the gap
+    for (const ring of RINGS) {
+      const seg = (Math.PI * 2 * ring.R) / RING_N * 1.12;
+      for (const s of ringSegs(ring)) {
+        if (!s.kept) continue;
+        const jag = s.edge ? (rng() - 0.5) * 0.5 : 0;
+        parts.push([box(1.5, s.edge ? seg * 0.7 : seg, 1.7), s.i % 2 ? cRib : cRibDark,
+          xf(s.x, s.y, s.z + (s.i % 3) * 0.4, 0, 0, s.a + Math.PI / 2 + jag)]);
+      }
+    }
+
+    // exposed skeleton where the forward hull's stern was shredded
+    ribArc(parts, cRib, mF, 0, 2, -78, 14.5, 0.25, Math.PI - 0.25, 7, 1.3);
+    ribArc(parts, cRibDark, mF, 0, 2, -68, 16, 0.55, Math.PI - 0.7, 5, 1.2);
+    // and around the aft section's torn bow, lower half
+    ribArc(parts, cRib, mA, 0, -2, 52, 16, Math.PI + 0.3, Math.PI * 2 - 0.3, 6, 1.3);
+
+    // snapped keel spines jutting into the gap, passing overhead as the rail dives
+    parts.push([box(3.2, 2.4, 28), cRib, xf(14, 12.5, -752, 0, 0.24, 0.1)]);
+    parts.push([box(2.6, 2.1, 24), cRibDark, xf(24, 9.5, -801, 0.08, -0.3, -0.12)]);
+    parts.push([box(1.2, 15, 1.2), cRibDark, xf(20, 4, -778, 0, 0, 0.32)]);
+    // torn spar carrying the popup at the aft bow corner + a rib cluster mid-gap
+    parts.push([box(19, 1.6, 1.6), cRib, xf(20.9, 0.8, -817.5, 0, 0.63, 0.06)]);
+    parts.push([box(7, 1.4, 1.4), cRibDark, xf(21.5, -2.6, -777.5, 0, 0.4, 0.5)]);
+    parts.push([box(5, 1.2, 1.2), cRib, xf(22.5, 0.6, -776.8, 0, -0.2, 1.1)]);
+
+    // masts and antennae off the forward superstructure
+    parts.push([box(0.7, 24, 0.7), cRibDark, mul(mF, xf(-4, 42, 30, 0, 0, 0.24))]);
+    parts.push([box(0.6, 15, 0.6), cRib, mul(mF, xf(-8, 38, -2, 0, 0, -0.38))]);
+    parts.push([box(0.5, 11, 0.5), cRibDark, mul(mF, xf(2, 10, 100, 0, 0, 1.2))]);
+
+    return merged(parts);
+  }
+
+  function buildWreckGlow() {
+    const rng = makeRng(8377);
+    const amber = new THREE.Color(PALETTE.amber);
+    const amberDim = shade(PALETTE.amber, 0.55);
+    const magenta = shade(PALETTE.magenta, 0.95);
+    const magentaDim = shade(PALETTE.magenta, 0.5);
+    const parts = [];
+    const mF = mFwd();
+    const mA = mAft();
+
+    // breach lines: jagged glow tracing both torn rims
+    for (let i = 0; i < 22; i++) {
+      const r = rimPoint(39, 23, i / 22);
+      const col = i % 5 === 0 ? magenta : i % 2 ? amber : amberDim;
+      parts.push([box(0.55, 2.4 + rng() * 2.4, 0.55), col,
+        mul(mF, xf(r.x + (rng() - 0.5) * 1.5, r.y + 1 + (rng() - 0.5) * 1.5,
+          -85.5 + (rng() - 0.5) * 3, 0, 0, r.a + (rng() - 0.5) * 0.9))]);
+    }
+    for (let i = 0; i < 13; i++) {
+      const r = rimPoint(37, 25, 0.5 + i / 26);
+      const col = i % 4 === 0 ? amber : i % 2 ? magenta : magentaDim;
+      parts.push([box(0.5, 2.2 + rng() * 2.2, 0.5), col,
+        mul(mA, xf(r.x + (rng() - 0.5) * 1.5, r.y + (rng() - 0.5) * 1.5,
+          59.5 + (rng() - 0.5) * 3, 0, 0, r.a + (rng() - 0.5) * 0.9))]);
+    }
+    // a crack crawling up the flank from the stern tear
+    for (let i = 0; i < 6; i++) {
+      parts.push([box(0.35, 3.2, 0.35), i % 2 ? magentaDim : magenta,
+        mul(mF, xf(21.4, 4 + i * 2.3, -82 + i * 3.1, 0, 0, (i % 2 ? 1 : -1) * 0.55))]);
+    }
+    // a second breach line across the aft port flank
+    for (let i = 0; i < 7; i++) {
+      parts.push([box(0.4, 3, 0.4), i % 3 ? magentaDim : magenta,
+        mul(mA, xf(-20.7, 9 - i * 2.4, -32 + i * 8.5, 0, 0, (i % 2 ? 1 : -1) * 0.5))]);
+    }
+    // and one splitting the prow face, seen head-on up the whole approach
+    for (let i = 0; i < 5; i++) {
+      parts.push([box(0.7, 4.6, 0.7), i % 2 ? magenta : magentaDim,
+        mul(mF, xf(-1 - i * 1.53, 6.5 - i * 2.9, 106.5 + i * 0.44, 0, 0.3, (i % 2 ? 1 : -1) * 0.55))]);
+    }
+    // a surviving porthole row across the upper prow face
+    for (let i = 0; i < 5; i++) {
+      const u = -5.5 + i * 2.6;
+      parts.push([box(1.15, 1.15, 0.45), i % 2 ? shade(PALETTE.amber, 0.3) : amber,
+        mul(mF, xf(-1.6 + u * 0.955, 4.6, 106.5 - u * 0.296, 0, 0.3, 0))]);
+    }
+    // amber jags around the bow's torn port corner + bow running lights
+    for (let i = 0; i < 3; i++) {
+      parts.push([box(0.45, 2.2, 0.45), i % 2 ? amberDim : amber,
+        mul(mF, xf(-16.5 - i * 1.4, 4 - i * 3.2, 90 + i * 2.5, 0.2, 0.4, 0.5 - i * 0.5))]);
+    }
+    parts.push([box(0.8, 0.8, 0.8), amber, mul(mF, xf(0.5, 6.2, 107.5))]);
+    parts.push([box(0.7, 0.7, 0.7), amberDim, mul(mF, xf(-3.5, -4.5, 107))]);
+    parts.push([box(0.7, 0.7, 0.7), magenta, mul(mF, xf(-1.5, 54.8, 37.5))]);
+
+    // window rows along the starboard flank: mostly dead, a few still lit
+    for (let lz = -80; lz <= 60; lz += 8) {
+      for (const [wy, jitter] of [[2.5, 0], [7, 4]]) {
+        const roll = rng();
+        const col = roll < 0.3 ? amber : roll < 0.38 ? magentaDim : shade(PALETTE.amber, 0.18);
+        parts.push([box(0.35, 1, 2.1), col, mul(mF, xf(21.15, wy, lz + jitter))]);
+      }
+    }
+    // a lit row on the superstructure face, seen head-on during the approach
+    for (const wx of [-9, -6, -3, 0, 3]) {
+      parts.push([box(1, 0.9, 0.4), rng() < 0.55 ? amber : shade(PALETTE.amber, 0.25),
+        mul(mF, xf(wx, 25, 40.3))]);
+    }
+
+    // glow rim framing every popup window socket
+    derelictPopups.forEach((e, i) => {
+      const [px, py, pz] = e.pos;
+      const col = i % 4 === 3 ? magenta : amber;
+      const colDim = i % 4 === 3 ? magentaDim : amberDim;
+      parts.push([box(3.9, 0.45, 0.45), col, xf(px, py + 1.85, pz - 0.4)]);
+      parts.push([box(3.9, 0.45, 0.45), colDim, xf(px, py - 1.85, pz - 0.4)]);
+      parts.push([box(0.45, 3.35, 0.45), colDim, xf(px - 1.85, py, pz - 0.4)]);
+      parts.push([box(0.45, 3.35, 0.45), col, xf(px + 1.85, py, pz - 0.4)]);
+    });
+
+    // hot tips where the rib rings snapped
+    for (const ring of RINGS) {
+      const col = ring.tint === 'amber' ? amber : magenta;
+      for (const s of ringSegs(ring)) {
+        if (s.edge) parts.push([box(0.7, 1.6, 0.7), col, xf(s.x, s.y, s.z, 0, 0, s.a)]);
+      }
+    }
+
+    // dying engines: dim magenta discs deep in the cones
+    for (const [ex, ey] of [[-11, 4], [11, 4], [0, -6]]) {
+      parts.push([box(7.6, 7.6, 1), magentaDim, mul(mA, xf(ex, ey, 59.2))]);
+      parts.push([new THREE.OctahedronGeometry(1.6, 0), magenta, mul(mA, xf(ex, ey, 60.5, 0, 0, 0, 1, 1, 0.5))]);
+    }
+    // running lights: keel line still blinking out its pattern, frozen
+    for (let lz = -60; lz <= 60; lz += 30) {
+      parts.push([box(0.6, 0.6, 0.6), lz % 60 ? amberDim : amber, mul(mF, xf(0, -19, lz))]);
+    }
+    for (let lz = -40; lz <= 40; lz += 20) {
+      parts.push([box(0.55, 0.55, 0.55), lz % 40 ? magentaDim : magenta, mul(mA, xf(-20.8, 3, lz))]);
+    }
+    // embers adrift in the break
+    for (let i = 0; i < 9; i++) {
+      const z = -748 - rng() * 58;
+      const p = rail.pointAt(-z + 12);
+      parts.push([new THREE.OctahedronGeometry(0.28 + rng() * 0.3, 0), i % 3 ? amberDim : magentaDim,
+        xf(p.x + (rng() - 0.5) * 16, p.y + (rng() - 0.35) * 10, z, rng(), rng(), rng())]);
+    }
+
+    return merged(parts);
+  }
+
   function nebulaPlane(parts, azimuthDeg, elevDeg, w, h, core, skyCols, seed) {
     const rng = makeRng(seed);
     const az = (azimuthDeg * Math.PI) / 180;
@@ -301,6 +633,7 @@ function register() {
       this.beatGroups = {
         departure: group(buildHangarShell(), buildHangarGlow(), buildCorridor()),
         asteroids: group(buildFieldNear(), buildFieldFar()),
+        derelict: group(buildWreckPlates(), buildWreckRibs(), buildWreckGlow()),
       };
       this.nebulae = mesh(buildNebulae());
       this.nebulae.frustumCulled = false;
