@@ -565,6 +565,61 @@ function register() {
     return merged(parts);
   }
 
+  // ---- boss beat (900-1170m): the sentinel approach. Gate monoliths pace the
+  // straight run from the derelict exit to the arena, then a ring of boundary
+  // markers and outer monoliths give the circled Guardian a place to stand.
+  function buildBossApproach() {
+    const rng = makeRng(3251);
+    const cSlab = mixc(PALETTE.space, PALETTE.violet, 0.28).multiplyScalar(1.35);
+    const cSlabDark = mixc(PALETTE.space, PALETTE.violet, 0.18).multiplyScalar(0.8);
+    const cyan = new THREE.Color(PALETTE.cyan);
+    const cyanDim = shade(PALETTE.cyan, 0.5);
+    const magentaDim = shade(PALETTE.magenta, 0.55);
+    const parts = [];
+
+    [910, 936, 962, 988, 1014].forEach((d, i) => {
+      const p = rail.pointAt(d);
+      const h = 8 + i * 1.7;
+      for (const s of [-1, 1]) {
+        const x = p.x + s * 8.5;
+        parts.push([box(2.3, h, 1.5), i % 2 ? cSlab : cSlabDark, xf(x, p.y + h / 2 - 3, p.z)]);
+        parts.push([box(1.5, 1.2, 1.1), cSlabDark, xf(x, p.y + h - 2.6, p.z)]);
+        parts.push([box(0.5, 0.5, 0.5), i % 2 ? magentaDim : cyan, xf(x, p.y + h - 1.7, p.z)]);
+        parts.push([box(0.35, h * 0.55, 0.2), cyanDim, xf(x - s * 1.2, p.y + h * 0.22 - 3, p.z + 0.1)]);
+      }
+    });
+
+    // arena boundary: a broken ring of floor segments just outside the rail circle
+    const CX = 0, CZ = -1050, AR = 27.5;
+    for (let i = 0; i < 28; i++) {
+      const a = (i / 28) * Math.PI * 2;
+      const x = CX + AR * Math.sin(a);
+      const z = CZ - AR * Math.cos(a);
+      parts.push([box(5.2, 0.55, 1.9), i % 2 ? cSlab : cSlabDark, xf(x, -4.5, z, 0, -a, 0)]);
+      if (i % 4 === 0) parts.push([box(0.6, 1.5, 0.6), cyanDim, xf(x, -3.4, z, 0, -a, 0)]);
+    }
+    // dais below the Guardian
+    parts.push([box(14, 1.4, 14), cSlabDark, xf(CX, -7.6, CZ, 0, 0.4, 0)]);
+    parts.push([box(10, 1.2, 10), cSlab, xf(CX, -6.4, CZ, 0, 0.15, 0)]);
+
+    // outer monoliths ringing the arena at a distance
+    for (let i = 0; i < 6; i++) {
+      const a = (i / 6) * Math.PI * 2 + 0.35;
+      const r = 52 + rng() * 20;
+      const h = 16 + rng() * 14;
+      const x = CX + r * Math.sin(a);
+      const z = CZ - r * Math.cos(a);
+      const ry = -a + (rng() - 0.5) * 0.4;
+      parts.push([box(5 + rng() * 4, h, 3.5), i % 2 ? cSlabDark : cSlab,
+        xf(x, h / 2 - 10, z, 0, ry, 0)]);
+      parts.push([box(1.2, 1.2, 1.2), i % 2 ? cyanDim : magentaDim, xf(x, h - 9.2, z)]);
+      parts.push([box(0.7, h * 0.55, 0.4), i % 2 ? magentaDim : cyanDim,
+        xf(x - 2.0 * Math.sin(a), h * 0.28 - 10, z + 2.0 * Math.cos(a), 0, ry, 0)]);
+    }
+
+    return merged(parts);
+  }
+
   function nebulaPlane(parts, azimuthDeg, elevDeg, w, h, core, skyCols, seed) {
     const rng = makeRng(seed);
     const az = (azimuthDeg * Math.PI) / 180;
@@ -634,6 +689,7 @@ function register() {
         departure: group(buildHangarShell(), buildHangarGlow(), buildCorridor()),
         asteroids: group(buildFieldNear(), buildFieldFar()),
         derelict: group(buildWreckPlates(), buildWreckRibs(), buildWreckGlow()),
+        boss: group(buildBossApproach()),
       };
       this.nebulae = mesh(buildNebulae());
       this.nebulae.frustumCulled = false;

@@ -63,6 +63,16 @@ const BOSS_CENTER = { x: 0, y: Y, z: -1050 };
 const BOSS_RADIUS = 25;
 const bossEntryX = BOSS_CENTER.x - BOSS_RADIUS;
 
+// The rail reaches the circle at ~1057; phases open only once the player can
+// actually engage. Phase 3 ends at the tally beat whether or not it was
+// destroyed — the ride never stalls.
+export const BOSS = {
+  center: BOSS_CENTER,
+  radius: BOSS_RADIUS,
+  phaseAt: [1060, 1095, 1130],
+  timeoutAt: 1170,
+};
+
 export const WAYPOINTS = [
   { x: 0, y: Y, z: 0 },
   ...departure(),
@@ -142,6 +152,7 @@ export const EVENTS = [
   { at: 540, type: 'beat', name: 'derelict' },
   ...derelictSpawns,
   { at: 900, type: 'beat', name: 'boss' },
+  ...BOSS.phaseAt.map((at, i) => ({ at, type: 'bossphase', phase: i + 1 })),
   { at: 1170, type: 'beat', name: 'tally' },
   { at: 1250, type: 'end' },
 ];
@@ -160,3 +171,4 @@ Object.freeze(WAYPOINTS);
 WAYPOINTS.forEach((w) => Object.freeze(w));
 deepFreeze(EVENTS);
 deepFreeze(RIDE);
+deepFreeze(BOSS);

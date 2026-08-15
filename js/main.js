@@ -3,6 +3,7 @@ import './sky.js';
 import './ambient.js';
 import './hands.js';
 import './targets.js';
+import './boss.js';
 import './projectiles.js';
 import './rail.js';
 import './game.js';

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { EVENTS, WAYPOINTS } from '../js/logic/script.js';
+import { BOSS, EVENTS, WAYPOINTS } from '../js/logic/script.js';
 import { createSpline } from '../js/logic/spline.js';
 
 const spawns = (type, a, b) =>
@@ -62,6 +62,20 @@ test('the rail dives through the derelict break and recovers', () => {
   for (let d = 540; d <= 900; d += 2) minY = Math.min(minY, spline.pointAt(d).y);
   assert.ok(minY < -2, `expected a dive below -2m, got ${minY.toFixed(1)}`);
   assert.ok(Math.abs(spline.pointAt(905).y - 2) < 0.5, 'rail must level out before the boss');
+});
+
+test('boss phases open once the rail is on the circle, before the tally', () => {
+  const phases = EVENTS.filter((e) => e.type === 'bossphase');
+  assert.deepEqual(phases.map((e) => [e.at, e.phase]), [[1060, 1], [1095, 2], [1130, 3]]);
+  const spline = createSpline(WAYPOINTS);
+  const tally = EVENTS.find((e) => e.type === 'beat' && e.name === 'tally');
+  assert.equal(BOSS.timeoutAt, tally.at);
+  for (const e of phases) {
+    const p = spline.pointAt(e.at);
+    const r = Math.hypot(p.x - BOSS.center.x, p.z - BOSS.center.z);
+    assert.ok(Math.abs(r - BOSS.radius) < 1.5, `phase ${e.phase} opens off-circle (r=${r.toFixed(1)})`);
+    assert.ok(e.at < tally.at);
+  }
 });
 
 test('field density ramps toward the derelict', () => {
