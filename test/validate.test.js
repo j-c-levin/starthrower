@@ -14,6 +14,13 @@ test('validator catches a hairpin', () => {
   assert.ok(validateRide(bad).some((e) => /yaw|revers/i.test(e)));
 });
 
+test('validator catches a steep climb (pitch)', () => {
+  const bad = { speed: SPEED, events: [{ at: 0, type: 'end' }], waypoints: [
+    { x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: -30 }, { x: 0, y: 18, z: -36 }, { x: 0, y: 18, z: -66 },
+  ] };
+  assert.ok(validateRide(bad).some((e) => /pitch/.test(e)));
+});
+
 test('validator catches unsorted and missing end', () => {
   const wp = [{ x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: -100 }];
   assert.ok(validateRide({ speed: 6, waypoints: wp, events: [

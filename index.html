@@ -9,7 +9,7 @@
 </head>
 <body>
   <a-scene background="color: #0b1030" renderer="colorManagement: true"
-           target-manager projectile-pool calibration game-manager audio-director debug-panel>
+           space-sky ambient-director target-manager projectile-pool calibration game-manager audio-director debug-panel>
     <a-entity id="rig" position="0 0 0" rail-mover>
       <a-entity id="head" camera position="0 1.6 0"></a-entity>
       <a-entity id="handL" hand-tracking-controls="hand: left" hand-thrower="hand: left"></a-entity>
@@ -21,9 +21,6 @@
               geometry="primitive: sphere; radius: 0.5"
               material="shader: flat; color: #ffc857"
               position="0 1.6 -6"></a-entity>
-
-    <a-box material="shader: flat; color: #1a2050; side: back"
-           position="0 6 -10" scale="12 12 20"></a-box>
   </a-scene>
 </body>
 </html>

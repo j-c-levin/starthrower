@@ -1,4 +1,6 @@
 import './palette.js';
+import './sky.js';
+import './ambient.js';
 import './hands.js';
 import './targets.js';
 import './projectiles.js';

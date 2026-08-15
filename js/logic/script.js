@@ -20,7 +20,8 @@ function asteroids() {
   const z0 = -180, z1 = -540;
   return range(z0, z1).map((z) => {
     const f = (z - z0) / (z1 - z0);
-    return { x: 18 * Math.sin(f * Math.PI * 2), y: Y, z }; // two gentle S-bends
+    // two gentle S-bends + a slow vertical swell, decorrelated (~1.3°/s pitch, cap is 10)
+    return { x: 18 * Math.sin(f * Math.PI * 2), y: Y + 3 * Math.sin(f * Math.PI * 4), z };
   });
 }
 
@@ -72,31 +73,40 @@ const railSpawn = (at, target, dx, dy, extra) => {
   return { at, type: 'spawn', target, pos: [p.x + dx, p.y + dy, p.z], ...extra };
 };
 
-// placeholder densities — Tasks 15/16 author the full beat content
+// asteroid-field beat: 25 asteroids + 8 drones, spacing ramps ~19m -> ~9m
 const fieldSpawns = [
-  [200, 'asteroid', -4, 0.2], [222, 'asteroid', 3.5, 1.2], [244, 'asteroid', -2.5, 0.6],
-  [262, 'drone', 2, 0.8],
-  [280, 'asteroid', 5, -0.4], [300, 'asteroid', -5, 0.9],
-  [322, 'drone', -2.5, 1.1],
-  [340, 'asteroid', 2.5, 0.3], [362, 'asteroid', -3, 1.4], [384, 'asteroid', 4.5, -0.2],
-  [404, 'drone', 2.5, 0.6],
-  [424, 'asteroid', -4.5, 0.8], [444, 'asteroid', 3, 1.6], [466, 'drone', -2, 0.9],
-  [486, 'asteroid', -2, 0.4], [508, 'asteroid', 4, 1.0],
+  [186, 'asteroid', -4, 1.5], [205, 'asteroid', 4.5, 0.6], [224, 'asteroid', -5, 2.0],
+  [236, 'drone', 2.5, 1.0],
+  [243, 'asteroid', 3.5, -0.3], [262, 'asteroid', -3, 1.2],
+  [272, 'drone', -2.5, 1.3],
+  [281, 'asteroid', 5, 0.8], [300, 'asteroid', -4.5, 0.2], [314, 'asteroid', 3, 1.8],
+  [320, 'drone', -2, 0.9],
+  [328, 'asteroid', -2.5, 0.7], [342, 'asteroid', 5, 1.2], [356, 'asteroid', -5.5, 1.6],
+  [362, 'drone', 3, 1.4],
+  [370, 'asteroid', 2.5, -0.4], [384, 'asteroid', -3.5, 1.0], [398, 'asteroid', 4, 1.9],
+  [406, 'drone', -3, 0.7],
+  [420, 'asteroid', -4, 1.4],
+  [426, 'drone', 2, 1.2],
+  [430, 'asteroid', 3.5, 0.3], [440, 'asteroid', -5, 1.9], [449, 'asteroid', 2.5, 1.1],
+  [458, 'asteroid', -3, -0.2],
+  [463, 'drone', -2.5, 0.8],
+  [467, 'asteroid', 4.5, 1.5], [476, 'asteroid', -2.5, 0.8], [485, 'asteroid', 5.5, 1.2],
+  [494, 'asteroid', -4.5, 0.5],
+  [500, 'drone', 2.5, 1.5],
+  [503, 'asteroid', 3, 1.7], [512, 'asteroid', -3.5, 1.0],
 ].map(([at, target, dx, dy]) => railSpawn(at, target, dx, dy));
 
+// placeholder densities — Task 16 authors the derelict beat
 const popupSpawns = [
   [560, -2.5, 0.5, 4, 0.55], [608, 3, 0.1, 3.5, 0.5], [656, -3, 0.9, 4.5, 0.5],
   [704, 2.5, 0.3, 4, 0.6], [752, -2, 0.7, 3.5, 0.55], [815, 2, 1.1, 4.2, 0.5],
 ].map(([at, dx, dy, period, duty]) => railSpawn(at, 'popup', dx, dy, { period, duty }));
 
+// departure corridor: 10 generous near-rail crates between the launch gates
 const crateSpawns = [
-  { at: 20, x: -3, y: 1.6, z: -20 },
-  { at: 45, x: 3, y: 2.4, z: -45 },
-  { at: 70, x: -3.5, y: 1.8, z: -70 },
-  { at: 95, x: 3.5, y: 2.6, z: -95 },
-  { at: 120, x: -3, y: 2, z: -120 },
-  { at: 145, x: 3, y: 2.2, z: -145 },
-].map((c) => ({ at: c.at, type: 'spawn', target: 'crate', pos: [c.x, c.y, c.z] }));
+  [16, -2.5, 0.6], [30, 2.5, 1.0], [44, -3, 0.2], [58, 3.2, 1.3], [72, -2.2, 0.8],
+  [88, 2.8, 0.4], [104, -3.2, 1.1], [120, 2.2, 0.7], [136, -2.6, 1.4], [152, 3, 0.9],
+].map(([at, dx, dy]) => railSpawn(at, 'crate', dx, dy));
 
 export const EVENTS = [
   { at: 0, type: 'beat', name: 'departure' },
