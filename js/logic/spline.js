@@ -44,7 +44,12 @@ export function createSpline(points) {
   }
 
   function tangentAt(dist) {
-    const a = pointAt(dist - 0.5), b = pointAt(dist + 0.5);
+    // Sample around the clamped target, not the raw (possibly far out-of-range)
+    // dist — otherwise querying well past the end (tally's continued drift)
+    // clamps both samples to the same terminal point, zeroing the tangent and
+    // snapping yaw toward 0 instead of holding the final heading.
+    const target = Math.min(length, Math.max(0, dist));
+    const a = pointAt(target - 0.5), b = pointAt(target + 0.5);
     const dx = b.x - a.x, dy = b.y - a.y, dz = b.z - a.z;
     const m = Math.hypot(dx, dy, dz) || 1;
     return { x: dx / m, y: dy / m, z: dz / m };

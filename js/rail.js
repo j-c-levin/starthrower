@@ -17,17 +17,28 @@ function register() {
       this.pos = new THREE.Vector3();
       this.yaw = 0;
       this.wasRiding = false;
+      this.tallyDistance = 0;
     },
 
     tick(t, dt) {
       const gm = this.el.sceneEl.components['game-manager'];
-      if (!gm || gm.state !== 'riding') {
+      if (!gm || (gm.state !== 'riding' && gm.state !== 'tally')) {
         this.wasRiding = false;
         return;
       }
       if (!dt) return;
 
-      const distance = gm.ride.distance();
+      // During 'tally' the ride's own distance is frozen at the finish line —
+      // keep drifting the rig forward along the final straight independently,
+      // at the same speed*params.speed rate ride.advance() used while riding.
+      let distance;
+      if (gm.state === 'riding') {
+        distance = gm.ride.distance();
+        this.tallyDistance = distance;
+      } else {
+        this.tallyDistance += (RIDE.speed * gm.params.speed * dt) / 1000;
+        distance = this.tallyDistance;
+      }
       const p = this.spline.pointAt(distance);
       this.pos.set(p.x, p.y, p.z);
       this.el.object3D.position.copy(this.pos);

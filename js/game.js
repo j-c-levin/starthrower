@@ -3,8 +3,6 @@ import { createRide } from './logic/ride.js';
 import { createScore, loadBest, saveBest } from './logic/scoring.js';
 import { parseParams } from './logic/params.js';
 
-const TALLY_AUTO_MS = 10000; // seam: Task 18's tally UI emits `tallydone` itself and replaces this fallback
-
 function createMemoryStorage() {
   const map = new Map();
   return {
@@ -35,7 +33,6 @@ function register() {
       this.ride = createRide(RIDE);
       this.score = createScore();
       this.rigEl = this.el.querySelector('#rig');
-      this.tallyElapsedMs = 0;
       this._debugPos = new THREE.Vector3();
       this.storage = safeStorage();
 
@@ -79,12 +76,6 @@ function register() {
       if (this.state === 'riding') {
         const events = this.ride.advance(dt * this.params.speed);
         this.routeEvents(events);
-      } else if (this.state === 'tally') {
-        this.tallyElapsedMs += dt;
-        if (this.tallyElapsedMs >= TALLY_AUTO_MS) {
-          this.tallyElapsedMs = 0;
-          this.el.emit('tallydone');
-        }
       }
     },
 
@@ -119,7 +110,6 @@ function register() {
       const newBest = saveBest(this.storage, score);
       const best = newBest ? score : prevBest;
       this.state = 'tally';
-      this.tallyElapsedMs = 0;
       this.el.emit('ridedone', { score, best, newBest });
     },
 
@@ -143,7 +133,6 @@ function register() {
     onTallyDone() {
       if (this.state !== 'tally') return;
       this.ride = createRide(RIDE);
-      this.tallyElapsedMs = 0;
       if (this.rigEl && this.rigEl.object3D) {
         this.rigEl.object3D.position.set(0, 0, 0);
         this.rigEl.object3D.rotation.set(0, 0, 0);
