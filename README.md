@@ -1,5 +1,46 @@
 # Starthrower
 
+A family WebXR rails shooter for Meta Quest 2, played with bare hands — no
+controllers, no buttons, no app store. You glide on a rail through deep space
+and throw stars: an overhand throwing motion fires a bolt along the line of
+your arm. Smash crates, asteroids, drones and pop-up panels to build a combo,
+face the Guardian at the end of the ride, then watch your score tally and go
+again. The ride starts from a hangar — throw a star at the glowing core (or
+just poke it) to launch.
+
+It runs entirely in the Quest browser from a static page; nothing to install.
+
+## For grown-ups (setup)
+
+Open **https://j-c-levin.github.io/starthrower/** in the Quest browser and tap
+Enter VR. Before handing the headset over:
+
+- Turn **hand tracking on**: Settings → Movement tracking → Hand and body
+  tracking.
+- **Set the controllers down** and let them go to sleep — an awake controller
+  suppresses hand input.
+- Clear enough boundary space to swing an arm freely.
+- That's it: throw overhand to fire. Aim comes from the line of the arm, so
+  point the whole throw at what you want to hit.
+
+## Development
+
+Plain ES modules served statically — no build step, no dependencies.
+
+- `npm test` — imports every module under `js/` as a smoke check, then runs
+  the `node:test` suite over the headless logic in `js/logic/`.
+- `scripts/serve.sh [port]` — static dev server (default port 8472).
+- Debug URL params (combinable, see `js/logic/params.js`):
+  - `?desktop` — mouse mode: click anywhere to fire from the camera.
+  - `?dist=<metres>` — skip the ride forward that far at launch, to jump
+    straight to a later beat or the boss.
+  - `?speed=<multiplier>` — scale ride speed.
+- `window.__starthrower` — console/automation hook exposing `state`, `score`
+  and `distance` getters plus `pressCore()` and `fire(dir)`.
+- **Bump `VERSION` in `js/version.js` with every deploy.** The in-headset
+  debug panel displays it, which is the only reliable way to confirm the
+  Quest browser isn't serving a stale cached build.
+
 ## Live tuning
 
 Every gameplay-feel constant can be overridden at runtime via URL query

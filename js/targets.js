@@ -9,6 +9,7 @@ const FIZZLE_MS = 680;
 const POPUP_EASE_MS = 70;
 const POPUP_LIVE_SCALE = 0.6;
 const RETIRE_BEHIND_M = 30;
+const POKE_COOLDOWN_MS = 1200;
 const WEAKPOINT_PULSE_W = 0.005; // rad/ms -> ~0.8Hz, under the 1Hz cap
 const GOLDEN = 2.399963229728653;
 const TAU = Math.PI * 2;
@@ -208,8 +209,8 @@ function register() {
       this.el.removeObject3D('targetPools');
     },
 
-    add({ id, el, type, radius }) {
-      this.targets.set(id, { id, el, type, radius, live: true });
+    add({ id, el, type, radius, pokeable }) {
+      this.targets.set(id, { id, el, type, radius, pokeable: !!pokeable, lastPokeAt: -Infinity, live: true });
     },
 
     removeTarget(id) {
@@ -236,6 +237,22 @@ function register() {
     spawn(evt) {
       const { target, pos, period, duty } = evt.detail;
       return this.deploy(target, pos, { period, duty });
+    },
+
+    pokeCheck(handPos, t) {
+      for (const rec of this.targets.values()) {
+        if (!rec.pokeable || rec.live === false) continue;
+        if (t - rec.lastPokeAt < POKE_COOLDOWN_MS) continue;
+        if (!rec.el.object3D || !isAncestorVisible(rec.el.object3D)) continue;
+        rec.el.object3D.getWorldPosition(this.worldPos);
+        if (this.worldPos.distanceTo(handPos) > rec.radius) continue;
+        rec.lastPokeAt = t;
+        this.el.emit('targethit', {
+          id: rec.id,
+          type: rec.type,
+          point: { x: this.worldPos.x, y: this.worldPos.y, z: this.worldPos.z },
+        });
+      }
     },
 
     spawnWeakpoint({ id, pos }) {
@@ -511,12 +528,19 @@ function register() {
     schema: {
       type: { type: 'string', default: '' },
       radius: { type: 'number', default: 0.5 },
+      pokeable: { type: 'boolean', default: false },
     },
     play() {
       this.targetId = this.el.id || `target-${++autoId}`;
       const manager = this.el.sceneEl.components['target-manager'];
       if (manager) {
-        manager.add({ id: this.targetId, el: this.el, type: this.data.type, radius: this.data.radius });
+        manager.add({
+          id: this.targetId,
+          el: this.el,
+          type: this.data.type,
+          radius: this.data.radius,
+          pokeable: this.data.pokeable,
+        });
       }
     },
     remove() {

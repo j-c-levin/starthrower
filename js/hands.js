@@ -128,6 +128,11 @@ function register() {
         confident = isAncestorVisible(this.el.object3D);
       }
 
+      if (confident) {
+        const manager = this.el.sceneEl.components['target-manager'];
+        if (manager) manager.pokeCheck(this.handPos, t);
+      }
+
       const result = this.tracker.update({
         headPos: this.headPos,
         handPos: this.handPos,

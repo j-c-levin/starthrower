@@ -7,6 +7,7 @@ import './boss.js';
 import './projectiles.js';
 import './rail.js';
 import './game.js';
+import './input-watcher.js';
 import './hud.js';
 import './tally.js';
 import './audio.js';

@@ -6,10 +6,114 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <script src="lib/aframe.min.js"></script>
   <script type="module" src="js/main.js"></script>
+  <style>
+    #landing {
+      position: fixed;
+      inset: 0;
+      z-index: 9000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 24px;
+      box-sizing: border-box;
+      color: #f4f1ff;
+      font-family: "Avenir Next", "Segoe UI", system-ui, -apple-system, sans-serif;
+      background:
+        radial-gradient(1.5px 1.5px at 18% 22%, rgba(244, 241, 255, 0.9), transparent 100%),
+        radial-gradient(1px 1px at 72% 14%, rgba(77, 227, 255, 0.8), transparent 100%),
+        radial-gradient(1px 1px at 84% 62%, rgba(244, 241, 255, 0.7), transparent 100%),
+        radial-gradient(1.5px 1.5px at 32% 78%, rgba(255, 200, 87, 0.8), transparent 100%),
+        radial-gradient(1px 1px at 58% 42%, rgba(244, 241, 255, 0.6), transparent 100%),
+        radial-gradient(1px 1px at 8% 56%, rgba(255, 95, 208, 0.6), transparent 100%),
+        radial-gradient(1.5px 1.5px at 92% 34%, rgba(244, 241, 255, 0.75), transparent 100%),
+        radial-gradient(1px 1px at 44% 12%, rgba(244, 241, 255, 0.55), transparent 100%),
+        radial-gradient(130% 100% at 50% 115%, #241a5e 0%, #0f1340 45%, #0b1030 70%, #070a20 100%);
+    }
+    #landing .card {
+      max-width: 34rem;
+      margin-bottom: 14vh;
+    }
+    #landing .eyebrow {
+      color: #4de3ff;
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.34em;
+      text-transform: uppercase;
+      margin-bottom: 1.1rem;
+    }
+    #landing h1 {
+      margin: 0 0 1.3rem;
+      font-size: clamp(2.1rem, 9vw, 4.2rem);
+      font-weight: 300;
+      letter-spacing: 0.22em;
+      text-indent: 0.22em;
+      color: #f4f1ff;
+      text-shadow: 0 0 24px rgba(106, 63, 212, 0.9), 0 0 60px rgba(106, 63, 212, 0.5);
+    }
+    #landing .note {
+      margin: 0 auto;
+      max-width: 30rem;
+      font-size: 0.95rem;
+      line-height: 1.6;
+      color: rgba(244, 241, 255, 0.72);
+    }
+    #landing .note strong {
+      color: #ffc857;
+      font-weight: 600;
+    }
+    #landing-desktop {
+      margin-top: 2rem;
+      padding: 0.7em 2em;
+      background: rgba(255, 200, 87, 0.08);
+      border: 1px solid rgba(255, 200, 87, 0.7);
+      border-radius: 999px;
+      color: #ffc857;
+      font: 600 0.78rem/1 "Avenir Next", "Segoe UI", system-ui, sans-serif;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      cursor: pointer;
+    }
+    #landing-desktop:hover {
+      background: rgba(255, 200, 87, 0.18);
+    }
+    .a-enter-vr {
+      position: fixed !important;
+      right: 50% !important;
+      bottom: 14vh !important;
+      transform: translateX(50%);
+      width: auto !important;
+      z-index: 9100 !important;
+    }
+    .a-enter-vr-button {
+      position: static !important;
+      background: rgba(77, 227, 255, 0.08) none !important;
+      border: 1px solid #4de3ff !important;
+      border-radius: 999px !important;
+      min-width: 0 !important;
+      min-height: 0 !important;
+      width: auto !important;
+      height: auto !important;
+      padding: 1em 2.6em !important;
+      color: #4de3ff !important;
+      font: 600 0.85rem/1 "Avenir Next", "Segoe UI", system-ui, sans-serif !important;
+      letter-spacing: 0.24em;
+      transition: background 0.2s;
+    }
+    .a-enter-vr-button:hover {
+      background: rgba(77, 227, 255, 0.2) !important;
+    }
+    .a-enter-vr-button::after {
+      content: "ENTER VR";
+    }
+    .a-enter-vr-modal {
+      display: none !important;
+    }
+  </style>
 </head>
 <body>
   <a-scene background="color: #0b1030" renderer="colorManagement: true"
-           space-sky ambient-director target-manager projectile-pool calibration game-manager audio-director debug-panel>
+           space-sky ambient-director target-manager projectile-pool calibration game-manager audio-director debug-panel input-watcher>
     <a-entity id="rig" position="0 0 0" rail-mover>
       <a-entity id="head" camera position="0 1.6 0"></a-entity>
       <a-entity id="handL" hand-tracking-controls="hand: left" hand-thrower="hand: left"></a-entity>
@@ -20,10 +124,40 @@
 
     <a-entity id="guardian" guardian></a-entity>
 
-    <a-entity id="core" hit-target="type: core; radius: 0.6" core-flash
+    <a-entity id="core" hit-target="type: core; radius: 0.6; pokeable: true" core-flash
               geometry="primitive: sphere; radius: 0.5"
               material="shader: flat; color: #ffc857"
               position="0 1.6 -6"></a-entity>
   </a-scene>
+
+  <div id="landing">
+    <div class="card">
+      <div class="eyebrow">a family star-throwing ride</div>
+      <h1>STARTHROWER</h1>
+      <p class="note">Grown-ups: turn on <strong>hand tracking</strong> in Quest
+        settings, clear a little space, and let the controllers fall asleep &mdash;
+        then put on the headset and throw stars with your bare hands.</p>
+      <button id="landing-desktop" hidden>start desktop mode</button>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var landing = document.getElementById('landing');
+      var scene = document.querySelector('a-scene');
+      scene.addEventListener('enter-vr', function () { landing.style.display = 'none'; });
+      scene.addEventListener('exit-vr', function () { landing.style.display = ''; });
+      if (new URLSearchParams(location.search).has('desktop')) {
+        var btn = document.getElementById('landing-desktop');
+        btn.hidden = false;
+        btn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          landing.style.display = 'none';
+          var vrUi = document.querySelector('.a-enter-vr');
+          if (vrUi) vrUi.style.display = 'none';
+        });
+      }
+    })();
+  </script>
 </body>
 </html>

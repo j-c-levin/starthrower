@@ -43,7 +43,7 @@ function register() {
       this.orbEl.setAttribute('position', '0 -1.4 0');
       this.orbEl.setAttribute('geometry', `primitive: sphere; radius: ${ORB_RADIUS}; segmentsWidth: 16; segmentsHeight: 12`);
       this.orbEl.setAttribute('material', `shader: flat; color: ${PALETTE.cyan}`);
-      this.orbEl.setAttribute('hit-target', `type: again; radius: ${ORB_RADIUS}`);
+      this.orbEl.setAttribute('hit-target', `type: again; radius: ${ORB_RADIUS}; pokeable: true`);
       this.el.appendChild(this.orbEl);
 
       this.orbLabelEl = textEntity({
