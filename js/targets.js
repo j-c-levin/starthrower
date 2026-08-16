@@ -549,6 +549,19 @@ function register() {
     },
   });
 
+  AFRAME.registerComponent('hangar-only', {
+    init() {
+      this.onRideStarted = () => { this.el.object3D.visible = false; };
+      this.onTallyDone = () => { this.el.object3D.visible = true; };
+      this.el.sceneEl.addEventListener('ridestarted', this.onRideStarted);
+      this.el.sceneEl.addEventListener('tallydone', this.onTallyDone);
+    },
+    remove() {
+      this.el.sceneEl.removeEventListener('ridestarted', this.onRideStarted);
+      this.el.sceneEl.removeEventListener('tallydone', this.onTallyDone);
+    },
+  });
+
   const FLASH_THROTTLE_MS = 1000;
 
   AFRAME.registerComponent('core-flash', {

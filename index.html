@@ -128,6 +128,18 @@
               geometry="primitive: sphere; radius: 0.5"
               material="shader: flat; color: #ffc857"
               position="0 1.6 -6"></a-entity>
+
+    <a-entity id="launch-pad" hangar-only position="0 0 -0.5">
+      <a-cylinder radius="0.2" height="0.07" position="0 0.035 0" segments-radial="10"
+                  material="shader: flat; color: #241a5e"></a-cylinder>
+      <a-cylinder radius="0.085" height="0.78" position="0 0.43 0" segments-radial="8"
+                  material="shader: flat; color: #3b2a78"></a-cylinder>
+      <a-cylinder radius="0.31" height="0.045" position="0 0.845 0" segments-radial="14"
+                  material="shader: flat; color: #4de3ff"></a-cylinder>
+      <a-cylinder id="pad" radius="0.27" height="0.06" position="0 0.897 0" segments-radial="14"
+                  material="shader: flat; color: #ffc857"
+                  hit-target="type: core; radius: 0.35; pokeable: true" core-flash></a-cylinder>
+    </a-entity>
   </a-scene>
 
   <div id="landing">
@@ -145,6 +157,7 @@
     (function () {
       var landing = document.getElementById('landing');
       var scene = document.querySelector('a-scene');
+      landing.addEventListener('click', function (e) { e.stopPropagation(); });
       scene.addEventListener('enter-vr', function () { landing.style.display = 'none'; });
       scene.addEventListener('exit-vr', function () { landing.style.display = ''; });
       if (new URLSearchParams(location.search).has('desktop')) {

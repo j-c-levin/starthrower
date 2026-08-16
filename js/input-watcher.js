@@ -107,7 +107,7 @@ function register() {
         width: 1.3,
         color: PALETTE.amber,
         position: '0 -0.2 0',
-        value: 'you can also poke the glowing core',
+        value: 'or tap the glowing pad',
       });
       this.line2.setAttribute('visible', false);
       this.inner.appendChild(this.line2);

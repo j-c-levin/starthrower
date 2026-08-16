@@ -5,8 +5,8 @@ controllers, no buttons, no app store. You glide on a rail through deep space
 and throw stars: an overhand throwing motion fires a bolt along the line of
 your arm. Smash crates, asteroids, drones and pop-up panels to build a combo,
 face the Guardian at the end of the ride, then watch your score tally and go
-again. The ride starts from a hangar — throw a star at the glowing core (or
-just poke it) to launch.
+again. The ride starts from a hangar — throw a star at the glowing core, or
+tap the glowing launch pad right in front of you.
 
 It runs entirely in the Quest browser from a static page; nothing to install.
 
