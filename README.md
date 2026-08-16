@@ -51,9 +51,9 @@ a `TUNED: key=value ...` line whenever at least one override is active.
 
 | Key | Default | Meaning |
 | --- | --- | --- |
-| `thrFactor` | `0.18` | Throw threshold, scaling factor applied to calibrated player height |
-| `thrMin` | `0.15` | Throw threshold, minimum clamp (metres) |
-| `thrMax` | `0.40` | Throw threshold, maximum clamp (metres) |
+| `thrFactor` | `0.162` | Throw threshold, scaling factor applied to calibrated player height |
+| `thrMin` | `0.135` | Throw threshold, minimum clamp (metres) |
+| `thrMax` | `0.36` | Throw threshold, maximum clamp (metres) |
 | `cooldownMs` | `250` | Minimum time between fires (ms) |
 | `rearmFrac` | `0.5` | Fraction of the threshold the hand must pull back before it can fire again |
 | `shoulderDownFrac` | `0.13` | Virtual shoulder offset below the head, scaling factor applied to height |

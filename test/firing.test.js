@@ -6,10 +6,10 @@ const HEAD = { x: 0, y: 1.6, z: 0 };
 const hand = (z, y = 1.4) => ({ x: 0.2, y, z });
 
 test('threshold scales with height and clamps', () => {
-  assert.equal(throwThreshold(1.8), 0.18 * 1.8);
-  assert.equal(throwThreshold(0.6), 0.15);
-  assert.equal(throwThreshold(2.5), 0.4);
-  assert.equal(throwThreshold(0), 0.25);
+  assert.equal(throwThreshold(1.8), 0.162 * 1.8);
+  assert.equal(throwThreshold(0.6), 0.135);
+  assert.equal(throwThreshold(2.5), 0.36);
+  assert.equal(throwThreshold(0), 0.225);
 });
 
 function makeTracker() {

@@ -1,5 +1,5 @@
-export function throwThreshold(heightMetres, { thrFactor = 0.18, thrMin = 0.15, thrMax = 0.40 } = {}) {
-  if (!heightMetres) return 0.25;
+export function throwThreshold(heightMetres, { thrFactor = 0.162, thrMin = 0.135, thrMax = 0.36 } = {}) {
+  if (!heightMetres) return 0.225;
   return Math.min(thrMax, Math.max(thrMin, thrFactor * heightMetres));
 }
 

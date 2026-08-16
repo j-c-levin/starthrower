@@ -82,8 +82,8 @@ independent — `?desktop` implies nothing about `?debug` and vice versa):
 
   | Key | Default | Meaning |
   | --- | --- | --- |
-  | `thrFactor` | `0.18` | throw threshold, × sampled player height |
-  | `thrMin` / `thrMax` | `0.15` / `0.40` | throw threshold clamp (m) |
+  | `thrFactor` | `0.162` | throw threshold, × sampled player height |
+  | `thrMin` / `thrMax` | `0.135` / `0.36` | throw threshold clamp (m) |
   | `cooldownMs` | `250` | minimum time between fires per hand |
   | `rearmFrac` | `0.5` | fraction of threshold the hand must pull back to re-arm |
   | `shoulderDownFrac` | `0.13` | virtual shoulder below head, × height |
@@ -310,10 +310,15 @@ before "fixing" any of these:
   simultaneously deployed — content-bounded in practice (the script never
   spawns that densely), but worth knowing if the budget is ever tightened
   (Task 12, deferred).
-- **Firing constants (threshold 0.18×height clamped 15-40cm, 250ms cooldown)
-  have never been device-tuned beyond their initial defaults** — no user
-  request to tune them yet; revisit at a full T20-style playtest (Task 8,
-  deferred).
+- **Firing constants have had exactly one device-tuning pass.** The throw
+  threshold was cut 10% (`thrFactor` 0.18→0.162, clamps 15-40cm→13.5-36cm, and
+  the no-height fallback 0.25→0.225m) on 2026-08-16 device feedback that it
+  only fired at full arm extension; `cooldownMs` 250 and `rearmFrac` 0.5 are
+  still untouched defaults. Note the threshold is measured from `baseline`,
+  the *minimum* head-to-hand distance seen while armed (`firing.js`), so a
+  player who tucks their hand right in raises how far they must then reach —
+  that interaction, not the constant alone, governs how much of the arm's
+  travel a throw needs.
 - **The tally's AGAIN orb is flagged `pokeable: true` but sits ~9m from the
   player** (tally entity at `z=-9`, orb at local `y=-1.4`) — not realistically
   reachable by an outstretched hand. The 10s auto-return timeout is the real

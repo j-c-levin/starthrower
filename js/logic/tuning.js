@@ -1,7 +1,7 @@
 export const TUNING_DEFAULTS = Object.freeze({
-  thrFactor: 0.18,
-  thrMin: 0.15,
-  thrMax: 0.40,
+  thrFactor: 0.162,
+  thrMin: 0.135,
+  thrMax: 0.36,
   cooldownMs: 250,
   rearmFrac: 0.5,
   shoulderDownFrac: 0.13,
