@@ -35,10 +35,14 @@ function register() {
   }
   const mul = (a, b) => new THREE.Matrix4().multiplyMatrices(a, b);
 
+  // like ambient.js merged(), plus per-part vertex offsets so the guardian can
+  // recolor tracked parts (the socket rims) after the merge
   function merged(parts) {
     const positions = [];
     const colors = [];
+    const offsets = [];
     for (const [geo, color, transform] of parts) {
+      offsets.push(positions.length / 3);
       const src = geo.index ? geo.toNonIndexed() : geo;
       if (transform) src.applyMatrix4(transform);
       const pos = src.getAttribute('position');
@@ -49,9 +53,11 @@ function register() {
       if (src !== geo) src.dispose();
       geo.dispose();
     }
+    offsets.push(positions.length / 3);
     const out = new THREE.BufferGeometry();
     out.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
     out.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+    out.userData.partOffsets = offsets;
     return out;
   }
 
@@ -69,7 +75,8 @@ function register() {
       cyanDim: shade(PALETTE.cyan, 0.5),
       magenta: shade(PALETTE.magenta, 0.9),
       magentaDim: shade(PALETTE.magenta, 0.5),
-      amberDim: shade(PALETTE.amber, 0.5),
+      rimActive: shade(PALETTE.amber, 0.72),
+      rimDormant: shade(PALETTE.violet, 0.72, 0.35),
     };
   }
 
@@ -77,8 +84,9 @@ function register() {
   // thin spires beyond. Amber is reserved for the weak-point sockets so the
   // shootable rings read instantly against the violet structure.
   function buildStatic(cols, localAnchors) {
-    const { cHull, cDark, cPanel, cyan, cyanDim, magenta, magentaDim, amberDim } = cols;
+    const { cHull, cDark, cPanel, cyan, cyanDim, magenta, magentaDim, rimDormant } = cols;
     const parts = [];
+    const rimParts = localAnchors.map(() => []);
 
     parts.push([box(2.4, 12.4, 2.4), cHull, xf(0, 0.2, 0)]);
     for (const [sx, sz] of [[1, 1], [1, -1], [-1, 1], [-1, -1]]) {
@@ -105,17 +113,25 @@ function register() {
       }
     });
 
-    // weak-point sockets at the exact spawn anchors, facing outward
-    for (const ring of localAnchors) {
+    // weak-point sockets at the exact spawn anchors, facing outward. Rims are
+    // baked dormant (cool mauve); the guardian recolors the active phase's band
+    // amber at each transition so only live rings read "shoot me".
+    localAnchors.forEach((ring, bi) => {
       for (const p of ring) {
         const ry = Math.PI - p.angle;
         parts.push([box(2.7, 2.7, 1.8), cDark, xf(...outPos(p.angle, ANCHOR_RADIUS - 0.9, p.y), 0, ry, 0)]);
-        parts.push([box(2.9, 0.42, 0.42), amberDim, xf(...outPos(p.angle, ANCHOR_RADIUS - 0.35, p.y, 0, 1.55), 0, ry, 0)]);
-        parts.push([box(2.9, 0.42, 0.42), amberDim, xf(...outPos(p.angle, ANCHOR_RADIUS - 0.35, p.y, 0, -1.55), 0, ry, 0)]);
-        parts.push([box(0.42, 2.9, 0.42), amberDim, xf(...outPos(p.angle, ANCHOR_RADIUS - 0.35, p.y, 1.55), 0, ry, 0)]);
-        parts.push([box(0.42, 2.9, 0.42), amberDim, xf(...outPos(p.angle, ANCHOR_RADIUS - 0.35, p.y, -1.55), 0, ry, 0)]);
+        const rims = [
+          [box(2.9, 0.42, 0.42), rimDormant, xf(...outPos(p.angle, ANCHOR_RADIUS - 0.35, p.y, 0, 1.55), 0, ry, 0)],
+          [box(2.9, 0.42, 0.42), rimDormant, xf(...outPos(p.angle, ANCHOR_RADIUS - 0.35, p.y, 0, -1.55), 0, ry, 0)],
+          [box(0.42, 2.9, 0.42), rimDormant, xf(...outPos(p.angle, ANCHOR_RADIUS - 0.35, p.y, 1.55), 0, ry, 0)],
+          [box(0.42, 2.9, 0.42), rimDormant, xf(...outPos(p.angle, ANCHOR_RADIUS - 0.35, p.y, -1.55), 0, ry, 0)],
+        ];
+        for (const part of rims) {
+          rimParts[bi].push(parts.length);
+          parts.push(part);
+        }
       }
-    }
+    });
 
     // outrigger pylons between the phase sectors
     for (const a of [-0.44, 1.01, 3.45]) {
@@ -138,7 +154,7 @@ function register() {
       parts.push([box(0.32, 9.4, 0.32), i % 2 ? cyanDim : cyan, xf(px, 0.5, pz)]);
     }
 
-    return merged(parts);
+    return { geo: merged(parts), rimParts };
   }
 
   // two counter-tilted halo rings, baked into one mesh; the group spins slowly
@@ -191,7 +207,13 @@ function register() {
         ring.map((p) => ({ x: p.x - c.x, y: p.y - c.y, z: p.z - c.z, angle: p.angle })));
       this.anchors = ANCHORS;
 
-      this.el.setObject3D('guardianBody', new THREE.Mesh(buildStatic(cols, localAnchors), this.material));
+      const body = buildStatic(cols, localAnchors);
+      this.bodyGeo = body.geo;
+      const po = body.geo.userData.partOffsets;
+      this.rimRanges = body.rimParts.map((idxs) => idxs.map((i) => [po[i], po[i + 1] - po[i]]));
+      this.rimActive = cols.rimActive;
+      this.rimDormant = cols.rimDormant;
+      this.el.setObject3D('guardianBody', new THREE.Mesh(body.geo, this.material));
 
       this.ringsEl = document.createElement('a-entity');
       this.el.appendChild(this.ringsEl);
@@ -294,7 +316,20 @@ function register() {
       }
     },
 
+    // recolors only at phase transitions and reset — well under the 1Hz cap
+    setBandRims(activePhase) {
+      const attr = this.bodyGeo.getAttribute('color');
+      this.rimRanges.forEach((band, bi) => {
+        const c = bi === activePhase - 1 ? this.rimActive : this.rimDormant;
+        for (const [start, count] of band) {
+          for (let i = start; i < start + count; i++) attr.setXYZ(i, c.r, c.g, c.b);
+        }
+      });
+      attr.needsUpdate = true;
+    },
+
     reconfigure(phase) {
+      this.setBandRims(phase);
       this.spinBoost = 2.4;
       this.ringsEl.removeAttribute('animation__tilt');
       this.ringsEl.setAttribute('animation__tilt', {
@@ -328,6 +363,7 @@ function register() {
       this.finaleMs = 0;
       this.burstsFired = 0;
       this.spinBoost = 1;
+      this.setBandRims(0);
       this.debrisRoot.visible = false;
       const c = BOSS.center;
       const o = this.el.object3D;
