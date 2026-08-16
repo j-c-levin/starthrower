@@ -84,6 +84,38 @@ test('custom rearmFrac changes how far back the hand must pull to re-arm', () =>
   assert.ok(shallow < deep, 'a smaller rearmFrac re-arms after less pull-back than the default');
 });
 
+// The rig moves ~0.1m per 60fps frame at the shipped 6m/s rail speed.
+function railCycles(handFollowsRig) {
+  const tr = makeTracker();
+  let fires = 0, t = 0, rail = 0;
+  const feed = (z) => {
+    rail -= 0.1;
+    const h = { x: HEAD.x, y: HEAD.y, z: HEAD.z + rail };
+    const p = hand(z);
+    if (handFollowsRig) p.z += rail;
+    if (tr.update({ headPos: h, handPos: p, t: t += 20 })) fires++;
+  };
+  for (let cycle = 0; cycle < 3; cycle++) {
+    for (let z = -0.2; z > -0.75; z -= 0.05) feed(z);
+    for (let z = -0.75; z < -0.2; z += 0.05) feed(z);
+    t += 300;
+  }
+  return { fires, state: tr.state() };
+}
+
+test('throws keep working while the rig travels down the rail', () => {
+  assert.equal(railCycles(true).fires, 3, 'one throw per cycle, rail motion cancels out');
+});
+
+test('a hand left behind in reference space jams the tracker for good', () => {
+  // Why hand-thrower applies the rig transform to wristObject3D: with the head
+  // on the rail and the hand not, displacement only ever grows, so re-arm
+  // (which needs it to shrink) can never happen again.
+  const { fires, state } = railCycles(false);
+  assert.equal(fires, 1, 'one phantom bolt at launch, then nothing for the rest of the ride');
+  assert.equal(state, 'recovering', 'latched, never re-arms');
+});
+
 test('low-confidence frames do not lower the baseline', () => {
   const tr = makeTracker();
   let t = 0;

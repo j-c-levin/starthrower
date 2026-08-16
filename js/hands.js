@@ -118,7 +118,13 @@ function register() {
       if (htc) {
         const wrist = htc.wristObject3D;
         if (wrist) {
-          wrist.getWorldPosition(this.handPos);
+          // wristObject3D sits on the scene root in reference space, so the rig's rail transform must be applied here.
+          this.handPos.copy(wrist.position);
+          const rig = this.el.object3D.parent;
+          if (rig) {
+            rig.updateWorldMatrix(true, false);
+            this.handPos.applyMatrix4(rig.matrixWorld);
+          }
           confident = !!(htc.hasPoses && wrist.visible);
         } else {
           confident = false;

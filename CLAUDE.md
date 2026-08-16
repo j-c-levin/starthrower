@@ -218,6 +218,19 @@ per-object entities.
   this; `js/input-watcher.js`'s `isHandTracked()` is the second call site.
   Reading the entity's own position here silently gets you nothing (Task 8's
   first device test: hands never fired until this was found).
+- **That wrist pose is in *reference* space, and nothing applies the rig
+  transform to it** — `wristObject3D` is added to `sceneEl.object3D` (the scene
+  root) and filled from `frame.fillPoses(..., referenceSpace, ...)`, while
+  `#head` is a child of `#rig` and so *does* get the rail transform. The two
+  spaces coincide only while the rig sits at the origin, i.e. in the hangar, so
+  a mismatch here tests clean and then dies the instant the ride departs. Any
+  consumer of the wrist position must lift it through `rig.matrixWorld`
+  (`hand-thrower` does). v18 shipped without this: head-to-hand distance grew
+  at ride speed, which fired one phantom bolt at launch and then latched the
+  tracker in `recovering` forever (re-arm needs the distance to *shrink*), so
+  throwing worked in the hangar and was dead for the whole ride. `?desktop`
+  cannot catch this class of bug — it fires from the camera, which is under the
+  rig and therefore always in the right space.
 - **An awake Touch controller suppresses hand input sources entirely.** Tell
   testers to set the controllers down and let them sleep before donning the
   headset (in the README's grown-up setup note for a reason).
