@@ -1,5 +1,6 @@
 import { VERSION } from './version.js';
 import { createTuning } from './logic/tuning.js';
+import { parseParams } from './logic/params.js';
 
 const UPDATE_INTERVAL_MS = 250;
 
@@ -37,6 +38,10 @@ function formatGameLine(gm) {
 function register() {
   AFRAME.registerComponent('debug-panel', {
     init() {
+      // Off by default (pre-release requirement): no entities, no per-tick work.
+      this.enabled = parseParams(window.location.search).debug;
+      if (!this.enabled) return;
+
       this.lastUpdate = -Infinity;
       this.handL = this.el.querySelector('#handL');
       this.handR = this.el.querySelector('#handR');
@@ -65,6 +70,7 @@ function register() {
     },
 
     tick(t) {
+      if (!this.enabled) return;
       if (t - this.lastUpdate < UPDATE_INTERVAL_MS) return;
       this.lastUpdate = t;
 

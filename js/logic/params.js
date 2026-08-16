@@ -4,5 +4,10 @@ export function parseParams(search) {
     const v = Number(q.get(k));
     return Number.isFinite(v) && v > 0 ? v : fallback;
   };
-  return { desktop: q.has('desktop'), dist: num('dist', 0), speed: num('speed', 1) };
+  return {
+    desktop: q.has('desktop'),
+    debug: q.has('debug'),
+    dist: num('dist', 0),
+    speed: num('speed', 1),
+  };
 }
