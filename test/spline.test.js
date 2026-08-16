@@ -30,3 +30,17 @@ test('curved path length exceeds chord', () => {
   ]);
   assert.ok(s.length > 60);
 });
+
+test('tangent far past the end holds the terminal direction, not degenerate', () => {
+  const s = createSpline([{ x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: -100 }]);
+  const t = s.tangentAt(9999);
+  assert.ok(close(Math.hypot(t.x, t.y, t.z), 1, 0.01));
+  assert.ok(t.z < -0.99);
+});
+
+test('tangent below zero holds the initial direction, not degenerate', () => {
+  const s = createSpline([{ x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: -100 }]);
+  const t = s.tangentAt(-50);
+  assert.ok(close(Math.hypot(t.x, t.y, t.z), 1, 0.01));
+  assert.ok(t.z < -0.99);
+});
