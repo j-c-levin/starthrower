@@ -182,9 +182,9 @@ Two layers, the starcatcher split: pure logic vs A-Frame glue.
 - `version.js` — the single `VERSION` export.
 
 **Cross-component wiring is scene events**, not direct references: `fired`,
-`targethit`, `spawntarget`, `scored`, `combobroken`, `beatchanged`,
-`bossphase`, `bossdefeated`, `ridestarted`, `ridedone`, `tallydone`,
-`gamehidden`/`gameshown`.
+`targethit`, `projectileexpired`, `spawntarget`, `scored`, `combobroken`,
+`beatchanged`, `bossphase`, `bossdefeated`, `ridestarted`, `ridedone`,
+`tallydone`, `gamehidden`/`gameshown`.
 
 **Comfort, enforced not asserted:** `validate.js` walks the shipped rail at
 1m steps and fails `npm test` if yaw rate exceeds 30°/s, pitch rate exceeds
@@ -225,9 +225,11 @@ per-object entities.
   the animation does not restart. Idiom used throughout (`core-flash`,
   `hud.js` point-pops, `tally.js` flourish, `boss.js` phase pulse/tilt):
   `el.removeAttribute('animation__x')` immediately before `setAttribute`.
-- **Never name a component method `play()` or `pause()`** — collides with
-  A-Frame's own component lifecycle and silently drops args/latches. (No
-  starthrower component does this; keep it that way.)
+- **Never name a component method `play()`/`pause()` as an ad-hoc verb** —
+  those names collide with A-Frame's own component lifecycle hooks and
+  silently drop args/latches if used for anything else. This is about
+  incidental name collisions, not the lifecycle hooks themselves: `hit-target`
+  legitimately implements A-Frame's `play()` lifecycle hook, which is fine.
 - **A parent's `visible = false` does not propagate to children's own
   `object3D.visible`.** Hit/visibility checks must walk ancestors — see the
   duplicated `isAncestorVisible()` helper in both `hands.js` and `targets.js`
@@ -235,8 +237,22 @@ per-object entities.
 - **`a-text` fetches its default font from cdn.aframe.io.** Every text entity
   in this repo (`hud.js`, `tally.js`, `debug-panel.js`, `input-watcher.js`)
   points at the vendored `lib/fonts/Roboto-msdf.json`/`.png` with
-  `negate: true` (`false` renders inverted/hollow). Keep it that way — no
-  runtime CDN requests anywhere.
+  `negate: true` (`false` renders inverted/hollow). Keep it that way.
+- **`hand-tracking-controls` defaults to `modelStyle: mesh` and fetches
+  `controllers/oculus-hands/v4/{left,right}.glb` from
+  `window.AFRAME_CDN_ROOT || 'https://cdn.aframe.io/'` the moment hands
+  connect** — a runtime CDN request the spec forbids. Prevented by vendoring
+  both GLBs into `lib/controllers/oculus-hands/v4/` and setting
+  `window.AFRAME_CDN_ROOT = 'lib/'` in an inline script in `index.html`,
+  strictly before the `lib/aframe.min.js` script tag. Confirmed by reading
+  the vendored bundle: `AFRAME_CDN_ROOT` backs a single base-URL variable
+  (`uy`) used to compose every built-in controller/hand model path
+  (`uy+"controllers/oculus-hands/v4/left.glb"`, etc.) *and* the default font
+  base — but every `font`/`fontImage` in this repo is passed as an explicit
+  `lib/fonts/...` path rather than a bundled keyword, so the font default
+  path is never consulted, and no other controller entities exist in this
+  hand-tracking-only app to touch the other model paths the override also
+  affects.
 - **Custom `ShaderMaterial`s bypass the renderer's linear→sRGB output
   transform** when `colorManagement: true` (set on `<a-scene>` here) —
   vertex-colored `MeshBasicMaterial` geometry gets the transform for free,
